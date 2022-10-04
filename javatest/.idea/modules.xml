@@ -1,0 +1,12 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<project version="4">
+  <component name="ProjectModuleManager">
+    <modules>
+      <module fileurl="file://$PROJECT_DIR$/demo/demo.iml" filepath="$PROJECT_DIR$/demo/demo.iml" />
+      <module fileurl="file://$PROJECT_DIR$/exceldemo/exceldemo.iml" filepath="$PROJECT_DIR$/exceldemo/exceldemo.iml" />
+      <module fileurl="file://$PROJECT_DIR$/excelgenerate/excelgenerate.iml" filepath="$PROJECT_DIR$/excelgenerate/excelgenerate.iml" />
+      <module fileurl="file://$PROJECT_DIR$/.idea/javatest.iml" filepath="$PROJECT_DIR$/.idea/javatest.iml" />
+      <module fileurl="file://$PROJECT_DIR$/miniprogram/miniprogram.iml" filepath="$PROJECT_DIR$/miniprogram/miniprogram.iml" />
+    </modules>
+  </component>
+</project>

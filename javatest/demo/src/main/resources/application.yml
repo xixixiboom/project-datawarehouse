@@ -1,0 +1,8 @@
+
+dcdsExcelConfig:
+  fileName: dcdsExcel.xlsx
+  sheetName: MDCS
+  tableNameEn:
+    - MRIIS_BONDDEAL
+    - MRIIS_FXSPOTPOS
+    - MRIIS_GOLDSPOTPOS

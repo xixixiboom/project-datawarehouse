@@ -1,0 +1,7 @@
+server:
+  port: 8088
+
+test:
+  map:
+    "default": 30
+    "[aaa:bbb:\ccc_ddd]": 20

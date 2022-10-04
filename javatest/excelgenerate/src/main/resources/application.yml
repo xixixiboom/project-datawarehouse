@@ -1,0 +1,140 @@
+#input1
+inputExcelConfig:
+  fileName: PDM-市场风险-海外_V1.0.xlsx   # 读取表名
+  sheetName: PDM     # 读取字段信息sheet
+  changeSheetName: 变更记录   # 读取pdm变更记录
+  isFiltrate: true  # true/false如果为false 则不筛选，直接整表全部转
+  tableNameEn:      #dcds、sdm为原表名，pdm为目标表名
+    - M_3AG_SWAP_OPTION_CNTRCT
+    - M_3AG_FIN_MKT_BOND_PROD_SNSBLTY_CNTRCT
+  tableNameCn:    #如上
+  #    - 债券头寸表
+  filterColumn:
+
+outputExcelConfig:
+  sdmFileName: SDM.xlsx
+  sdmSheetName: SDM
+  pdmFileName: PDM.xlsx
+  pdmSheetName: PDM
+  physicalModelFileName: 物理模型.xlsx
+  physicalModelSheetName: 字段级信息
+  physicalModelChangeRecordFileName: 物理模型表级信息.xlsx
+  physicalModelSheetName_table: 表级信息
+#input3
+#生成语句
+generateExecuteableStatement:
+  mDdlDir: C:\Users\60348\Desktop\tmp\executeableStatement\generate\autocode\ddl\iml
+  mDmlDir: C:\Users\60348\Desktop\tmp\executeableStatement\generate\autocode\dml\iml
+  imlDate: 20210301   #生成python命令dml日期
+  iulDate: 20211231   #生成python命令iul日期
+  generateDir: C:\Users\60348\Desktop\tmp\executeableStatement\generate\statement
+
+#input2
+BeforeEtl:  #待清空文件目录与备份目录，注意一一对应，    清空的文件会进行备份
+  emptyDir:
+    - C:\Users\60348\Desktop\tmp\executeableStatement\generate\autocode\ddl\iml   #ddl\iml
+    - C:\Users\60348\Desktop\tmp\executeableStatement\generate\autocode\dml   #dml\iml
+    - C:\Users\60348\Desktop\tmp\executeableStatement\generate\model\mapping    #mapping
+
+  #需要备份且创建目录的路径
+  needBackupAndCreateDir: {physicalModel: C:\Users\60348\Desktop\tmp\executeableStatement\generate\model\pdm,
+                            SDM: C:\Users\60348\Desktop\tmp\executeableStatement\generate\model\sdm,
+                            iulExcel: C:\Users\60348\Desktop\tmp\executeableStatement\generate\model\iul}
+  targetBackupDir: C:\Users\60348\Desktop\tmp\executeableStatement\generate\backup   #总备份目录
+#input4
+UploadFile:
+  ip: 121.4.16.43
+  port: 22      #sftp端口
+  userName: onlee
+  passWord: test123123
+  localAndRemoteDir:  #注意，在使用-Dspring.location.config 指定yml文件时，并不是完全覆盖，默认的yml的某些参数不被覆盖时也会执行，比如这个map 就会在读取完指定yml后在读取这里默认的内容
+    [C:\Users\60348\Desktop\tmp\executeableStatement\generate\autocode\ddl\iml]: /tmp/20220703test/ddl/iml    #特殊字符作为key需要转义，本来应该"[...]" 但不能识别，因此代码子串处理，todo
+    [C:\Users\60348\Desktop\tmp\executeableStatement\generate\autocode\dml\iml]: /tmp/20220703test/dml/iml
+    [C:\Users\60348\Desktop\tmp\executeableStatement\generate\autocode\dml\iul]: /tmp/20220703test/dml/iul
+#input5
+# 通过工作流依赖excel 和输入t表excel找表级关系
+findTableRelation:
+  warehousingExcelName: ADPS已入仓.xlsx
+  warehousingExcelSheetName: Sheet1
+  domesticSdmExcelName: SDM-市场风险-海外_V1.0.xlsx
+  domesticSdmExcelSheetName: SDM
+  overseasSdmExcelName:
+  overseasSdmExcelSheetName:
+  templateOutputExcelName:
+  templateOutputExcelSheetName:
+  domesticRelationExcelName: 无标题.xlsx
+  domesticRelationExcelSheetName: Sheet1
+  overseasRelationExcelName: 无标题.xlsx
+  overseasRelationExcelSheetName: Sheet1
+  domesticOutputExcelName: 1.xlsx
+  overseasOutputExcelName: 2.xlsx
+  domesticOutputExcelNameWithoutSdm: 1.xlsx
+  overseasOutputExcelNameWithoutSdm: 2.xlsx
+Server:
+  port: 9000
+#input7
+#通过t和sdm 找m层表名和sdm
+findTToBRelation:
+  warehousingExcelName: wxf.xlsx
+  warehousingExcelSheetName: edp_wxf
+  domesticSdmExcelName: SDM合并（2207基线）.xlsx
+  domesticSdmExcelSheetName: SDM
+  overseasSdmExcelName: SDM海外合并.xlsx
+  overseasSdmExcelSheetName: SDM
+  domesticOutputExcelName: 3.xlsx
+  overseasOutputExcelName: 4.xlsx
+#input6
+#通过t和sdm 找m层表名和sdm
+findCRelation:
+  warehousingExcelName: ADPS已入仓.xlsx
+  warehousingExcelSheetName: Sheet1
+  domesticSdmExcelName: SDM合并（2207基线）.xlsx
+  domesticSdmExcelSheetName: SDM
+  overseasSdmExcelName:
+  overseasSdmExcelSheetName:
+  domesticOutputExcelName: 1.xlsx
+  overseasOutputExcelName: 2.xlsx
+#input8
+dataLakeInfo:
+  demandInputTemplateTableListFileName:
+  demandInputTemplateTableListSheetName:
+  dataUpperLimit:
+  dataLowerLimit:
+  dataSizeStandardValue: 1
+  odsOutputFileName:
+#input9 input11
+matchField:
+  demandInputTemplateDetailFileName: 数仓需求输入-业务技术口径(模板)_V1.1.xlsx
+  demandInputTemplateDetailSheetName: 明细项填写
+  matchFieldOutputFileName: 还原口径.xlsx
+  DomesticSdmFileName: SDM合并（2207基线）.xlsx
+  OverseasSdmFileName: SDM海外合并.xlsx
+  DomesticSdmSheetName: SDM
+  OverseasSdmSheetName: SDM
+  reduceDiameterOutputFileName: 关联交易十月独立批次口径还原0923.xlsx
+  dateDomesticUpperLimit:
+  dateDomesticLowerLimit:
+  dateOverseasUpperLimit:
+  dateOverseasLowerLimit:
+#input10
+version:
+  destDir: D:\javanote\javatest\excelgenerate\target
+  outputFileName: 版本相关.xlsx
+  outputSheetName: 文件列表
+  fileType:
+    - xlsx
+    - txt
+    - class
+spring:
+  datasource:
+#    # T2 调度知识库
+#    url: jdbc:mysql://22.87.211.101:3306/udp_jcm_t2?useAffectedRows=true&characterEncoding=utf8&useSSL=false
+#    username: 'jcmuser1'
+#    password: 'XaXx99999!'
+#    driver-class-name: com.mysql.cj.jdbc.Driver
+
+    # T2 调度知识库
+    url: jdbc:mysql://localhost:3306/ruoyi_vue?useAffectedRows=true&characterEncoding=utf8&useSSL=false&allowPublicKeyRetrieval=true
+    username: 'root'
+    password: 'root'
+    driver-class-name: com.mysql.cj.jdbc.Driver
