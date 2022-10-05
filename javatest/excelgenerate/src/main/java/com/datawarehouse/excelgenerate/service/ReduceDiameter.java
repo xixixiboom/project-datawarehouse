@@ -306,7 +306,7 @@ public class ReduceDiameter {
         List<List<String>> alreadyLnListOverseas = (List<List<String>>)outputOverseas.get(3);
         List<List<String>> alreadyLnList = ObjectHandle.mergeList(alreadyLnListDomestic, alreadyLnListOverseas);
 
-        writeExcel.writeCommon(reduceDiameterOutputFileName,"全表清单",lsAll);
+//        writeExcel.writeCommon(reduceDiameterOutputFileName,"全表清单",lsAll);
     }
 
     public void writeMulti(){
@@ -347,7 +347,7 @@ public class ReduceDiameter {
     }
 
     //写入数据转换
-    public Map<String,List<List<String>>> convertToAlreadyLn(Map<String,List<List<String>>>){
-
+    public Map<String,List<List<String>>> convertToAlreadyLn(Map<String,List<List<String>>> mapLnput){
+        return mapLnput;
     }
 }
