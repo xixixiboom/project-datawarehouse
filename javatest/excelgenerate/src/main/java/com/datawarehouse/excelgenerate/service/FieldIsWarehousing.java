@@ -50,8 +50,6 @@ public class FieldIsWarehousing implements Callable {
                 }
             }
         }
-
-
         if(sdmListRet.size()==0){
             SdmExcelOffical sdm=new SdmExcelOffical();
             sdm.setOriginalTableNameEn("#N/A");

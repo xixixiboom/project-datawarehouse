@@ -209,6 +209,7 @@ public class MatchField {
                 for(SdmExcelOffical sdmRet : sdmList){
                     InputAndSdmField inputAndSdmField = new InputAndSdmField();
                     inputAndSdmField.setSrcSystem( detailDomestic.getSrcSystem());
+                    //将属性相同的值复制过去
                     BeanUtils.copyProperties(detailDomestic, inputAndSdmField);
                     BeanUtils.copyProperties(sdmRet, inputAndSdmField);
                     lsRet.add(inputAndSdmField);

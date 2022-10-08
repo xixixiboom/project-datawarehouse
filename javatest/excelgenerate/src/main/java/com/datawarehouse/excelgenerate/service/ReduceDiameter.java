@@ -1,23 +1,26 @@
 package com.datawarehouse.excelgenerate.service;
 
+import com.alibaba.excel.EasyExcel;
+import com.alibaba.excel.ExcelWriter;
+import com.alibaba.excel.write.metadata.WriteSheet;
+import com.alibaba.excel.write.metadata.WriteWorkbook;
 import com.datawarehouse.excelgenerate.config.MatchFieldConfig;
 import com.datawarehouse.excelgenerate.entity.SdmExcelOffical;
-import com.datawarehouse.excelgenerate.entity.TtoMOutputExcel;
-import com.datawarehouse.excelgenerate.entity.WarehousingAnalysize;
 import com.datawarehouse.excelgenerate.entity.reduceDiameter.InputAndSdmField;
-import com.datawarehouse.excelgenerate.utils.FileHandle;
+import com.datawarehouse.excelgenerate.service.easyExcelSet.HyperlinkAlreadyInCellWriteHandler;
+import com.datawarehouse.excelgenerate.service.easyExcelSet.HyperlinkTableListCellWriteHandler;
 import com.datawarehouse.excelgenerate.utils.ObjectHandle;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
-import sun.awt.image.ImageWatched;
 
-import javax.persistence.criteria.CriteriaBuilder;
+import java.io.File;
 import java.text.SimpleDateFormat;
 import java.util.*;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 import java.util.stream.Collectors;
-import java.util.stream.DoubleStream;
 
 /**
  * @ClassName ReduceDiameter
@@ -34,6 +37,10 @@ public class ReduceDiameter {
     MatchField matchField;
     @Autowired
     WriteExcel writeExcel;
+
+    public List<String> listSheet;
+    private static final Logger logger = LoggerFactory.getLogger(ReduceDiameter.class);
+
     //将读取的数据转为List，方便处理，后面使用模板追加写
     public List<List<List<String>>> convertObjToList(){
         List<List<InputAndSdmField>> lists = matchField.doWrite();
@@ -51,10 +58,11 @@ public class ReduceDiameter {
     public List<List<String>> filter(List<List<String>> llsInput, Integer dateLowerLimit, Integer dateUpperLimit){
 
         List<List<String>> retLLs = new ArrayList<List<String>>();
+
         if(dateLowerLimit!=null&&dateUpperLimit!=null){
             for(List<String>ls : llsInput){
                 String changeRecord = ls.get(8);
-                if(changeRecord!=null&&changeRecord.length()==10){
+                if(changeRecord!=null&&changeRecord.length()==10&&!changeRecord.contains("删除")){
                     String date = changeRecord.substring(0, 8);
                     Integer dateInt = Integer.parseInt(date);
                     String changeType = changeRecord.substring(8);
@@ -64,7 +72,7 @@ public class ReduceDiameter {
                                 retLLs.add(ls);
                             }
                         }else{
-                            if(dateInt<dateUpperLimit&&dateInt>dateLowerLimit){
+                            if(dateInt<=dateUpperLimit&&dateInt>=dateLowerLimit){
                                 retLLs.add(ls);
                             }
                         }
@@ -73,8 +81,18 @@ public class ReduceDiameter {
 
             }
             return retLLs;
+        }else{
+            for(List<String>ls1 : llsInput){
+                String changeRecord = ls1.get(8);
+                if(changeRecord==null){
+                    retLLs.add(ls1);
+                } else if(!changeRecord.contains("删除")){
+                    retLLs.add(ls1);
+                }
+            }
+            return retLLs;
         }
-        return llsInput;
+
     }
 
     public List<Object> convertToTableList(List<List<String>> inputLls,String type){
@@ -95,7 +113,7 @@ public class ReduceDiameter {
         //记录目标表名list
         Map<String, List<String>> targetTableMap =new LinkedHashMap<>();
         //存已入仓字段
-        List<List<String>> alreadyLnList = new ArrayList<>();
+        List<List<String>> alreadyInList = new ArrayList<>();
         //记录字段入仓数,表名去重
         for(int i=0;i<row;i++){
             List<String> elementLs = inputLls.get(i);
@@ -105,7 +123,7 @@ public class ReduceDiameter {
             String targetTableNameEn = elementLs.get(10);
             //记录目标表名
             if(targetTableNameEn!=null){
-                alreadyLnList.add(elementLs);
+                alreadyInList.add(elementLs);
                 if(!targetTableMap.containsKey(spliceTableName)){
                     List<String> ls =new ArrayList<>();
                     ls.add(targetTableNameEn);
@@ -139,6 +157,7 @@ public class ReduceDiameter {
         List<List<String>> retLls = new ArrayList<>();
         List<String> allWarehousedTableLs = new ArrayList<>();
         List<String> partWarehousedTableLs = new ArrayList<>();
+        List<List<SdmExcelOffical>> lists = matchField.initSdmExcel();
         for(Integer j:indexLs){
             List<String> retLs = new ArrayList<>();
             List<String> elementLs = inputLls.get(j);
@@ -183,7 +202,7 @@ public class ReduceDiameter {
                 //记录字段全部入仓的表
                 allWarehousedTableLs.add(spliceTableName);
             }else if(countTargetField==0){
-                if(initMatch(spliceTableName,type)){
+                if(initMatch(spliceTableName,type,lists)){
                     isWarehousing="部分入仓"+"("+countTargetField+"/"+countSrcField+")";
                     //记录字段部分入仓的表
                     partWarehousedTableLs.add(spliceTableName);
@@ -199,6 +218,7 @@ public class ReduceDiameter {
 
             }else{
                 isWarehousing="部分入仓"+"("+countTargetField+"/"+countSrcField+")";
+                partWarehousedTableLs.add(spliceTableName);
             }
             retLs.add(isWarehousing);
 
@@ -241,12 +261,12 @@ public class ReduceDiameter {
         retLs.add(notInWarehouseLs);
         //已入仓字段
 //        retLs.add(allInWarehouseFieldLs);
-        retLs.add(alreadyLnList);
+        retLs.add(alreadyInList);
         return retLs;
     }
 
     public Boolean doMatchIsWarehousing(String spliceTableName, List<SdmExcelOffical> listSdm){
-        Pattern n = Pattern.compile("（ods|o)_"+spliceTableName+"_(d|g)\\d_(i|f/z)_\\w(_snapshot)?");
+        Pattern n = Pattern.compile("(ods|o)_"+spliceTableName+"_((d|g)\\d_(i|f/z)_)?\\w(_snapshot)?");
         for(SdmExcelOffical sdmExcelOffical:listSdm){
             String originalTableNameEn = sdmExcelOffical.getOriginalTableNameEn();
             //eg ods_01_invm_d0_i_d
@@ -261,8 +281,7 @@ public class ReduceDiameter {
         }
         return false;
     }
-    public Boolean initMatch(String spliceTableName,String type){
-        List<List<SdmExcelOffical>> lists = matchField.initSdmExcel();
+    public Boolean initMatch(String spliceTableName,String type,List<List<SdmExcelOffical>> lists){
         List<SdmExcelOffical> sdmLsDomestic = lists.get(0);
         List<SdmExcelOffical> sdmLsOverseas = lists.get(1);
         if(type.equals("国内")){
@@ -273,7 +292,7 @@ public class ReduceDiameter {
         return false;
     }
 
-    public void doWrite(){
+    public List<Object> getData(){
         String reduceDiameterOutputFileName = matchFieldConfig.getReduceDiameterOutputFileName();
         List<List<List<String>>> lists = convertObjToList();
         List<List<String>> inputDomestic = lists.get(0);
@@ -292,26 +311,133 @@ public class ReduceDiameter {
         //全表清单
         List<List<String>>tableListDomestic = (List<List<String>>)outputDomestic.get(0);
         List<List<String>>tableListOverseas = (List<List<String>>)outputOverseas.get(0);
-        List<List<String>> tableList = ObjectHandle.mergeList(tableListDomestic, tableListOverseas);
+//        List<List<String>> tableList = ObjectHandle.mergeList(tableListDomestic, tableListOverseas);
         //已入仓表未入仓字段
-        List<List<String>> partLnListDomestic = (List<List<String>>)outputDomestic.get(1);
-        List<List<String>> partLnListOverseas = (List<List<String>>)outputOverseas.get(1);
-        List<List<String>> partLnList = ObjectHandle.mergeList(partLnListDomestic, partLnListOverseas);
+        List<List<String>> partInListDomestic = (List<List<String>>)outputDomestic.get(1);
+        List<List<String>> partInListOverseas = (List<List<String>>)outputOverseas.get(1);
+//        List<List<String>> partInList = ObjectHandle.mergeList(partInListDomestic, partInListOverseas);
         //未入仓表
-        List<List<String>> notLnListDomestic = (List<List<String>>)outputDomestic.get(2);
-        List<List<String>> notLnListOverseas = (List<List<String>>)outputOverseas.get(2);
-        List<List<String>> notLnList = ObjectHandle.mergeList(notLnListDomestic, notLnListOverseas);
+        List<List<String>> notInListDomestic = (List<List<String>>)outputDomestic.get(2);
+        List<List<String>> notInListOverseas = (List<List<String>>)outputOverseas.get(2);
+//        List<List<String>> notInList = ObjectHandle.mergeList(notInListDomestic, notInListOverseas);
         //已入仓字段
-        List<List<String>> alreadyLnListDomestic = (List<List<String>>)outputDomestic.get(3);
-        List<List<String>> alreadyLnListOverseas = (List<List<String>>)outputOverseas.get(3);
-        List<List<String>> alreadyLnList = ObjectHandle.mergeList(alreadyLnListDomestic, alreadyLnListOverseas);
-
-//        writeExcel.writeCommon(reduceDiameterOutputFileName,"全表清单",lsAll);
+        List<List<String>> alreadyInListDomestic = (List<List<String>>)outputDomestic.get(3);
+        List<List<String>> alreadyInListOverseas = (List<List<String>>)outputOverseas.get(3);
+//        List<List<String>> alreadyInList = ObjectHandle.mergeList(alreadyInListDomestic, alreadyInListOverseas);
+        //去重分组
+        Map<String, List<List<String>>> alreadyInMapDomestic = splitList(alreadyInListDomestic);
+        //转换成写入list
+        Map<String, List<List<String>>> convertAlreadyInMapDomestic = convertToAlreadyIn(alreadyInMapDomestic,"国内");
+        Map<String, List<List<String>>> alreadyInMapOverseas = splitList(alreadyInListOverseas);
+        Map<String, List<List<String>>> convertAlreadyInMapOverseas = convertToAlreadyIn(alreadyInMapOverseas,"海外");
+        //表头
+        List<List<String>> headList = getHeadList();
+        List<Object> lsObject = new ArrayList<Object>();
+        lsObject.add(reduceDiameterOutputFileName);
+        lsObject.add(headList);
+        lsObject.add(tableListDomestic);
+        lsObject.add(partInListDomestic);
+        lsObject.add(notInListDomestic);
+        lsObject.add(convertAlreadyInMapDomestic);
+        lsObject.add(tableListOverseas);
+        lsObject.add(partInListOverseas);
+        lsObject.add(notInListOverseas);
+        lsObject.add(convertAlreadyInMapOverseas);
+        return lsObject;
     }
 
-    public void writeMulti(){
+    public void doWrite(){
+        List<Object> data = getData();
+        String reduceDiameterOutputFileName = (String)data.get(0);
+        List<List<String>> headList =(List<List<String>>)data.get(1);
+        List<List<String>> tableListDomestic =(List<List<String>>)data.get(2);
+        List<List<String>> partInListDomestic =(List<List<String>>)data.get(3);
+        List<List<String>> notInListDomestic =(List<List<String>>)data.get(4);
+        Map<String, List<List<String>>> convertAlreadyInMapDomestic=(Map<String, List<List<String>>>)data.get(5);
+        List<List<String>> tableListOverseas =(List<List<String>>)data.get(6);
+        List<List<String>> partInListOverseas =(List<List<String>>)data.get(7);
+        List<List<String>> notInListOverseas =(List<List<String>>)data.get(8);
+        Map<String, List<List<String>>> convertAlreadyInMapOverseas=(Map<String, List<List<String>>>)data.get(9);
 
+        List<String> sheetListDomestic = getSheetList(tableListDomestic, convertAlreadyInMapDomestic);
+        List<String> sheetListOverseas = getSheetList(tableListOverseas, convertAlreadyInMapOverseas);
+
+
+        writeMulti(reduceDiameterOutputFileName,sheetListDomestic,sheetListOverseas,headList,tableListDomestic,partInListDomestic,notInListDomestic,convertAlreadyInMapDomestic,tableListOverseas,partInListOverseas,notInListOverseas,convertAlreadyInMapOverseas);
     }
+
+    public List<String> getSheetList(List<List<String>> tableList,Map<String, List<List<String>>> alreadyInMap){
+        List<String> sheetList = new ArrayList<String>();
+
+        for(List<String> ls:tableList){
+            for(String key :alreadyInMap.keySet()){
+                String sTable = ls.get(1) + "_" + ls.get(2);
+                if(sTable.toUpperCase().equals(key.toUpperCase())){
+                    List<List<String>> lls = alreadyInMap.get(key);
+                    String s = lls.get(lls.size()-1).get(0);
+                    sheetList.add(s);
+                }
+            }
+        }
+        logger.info("sheetList:"+sheetList);
+        return sheetList;
+    }
+
+    public void writeMulti(String fileName,List<String> sheetListDomestic,List<String>sheetListOverseas,List<List<String>> headList,List<List<String>> tableListDomestic,List<List<String>> partInListDomestic,List<List<String>> notInListDomestic,Map<String,List<List<String>>>alreadyInMapDomestic
+            ,List<List<String>> tableListOverseas,List<List<String>>partInListOverseas,List<List<String>>notInListOverseas,Map<String,List<List<String>>>alreadyInMapOverseas){
+        ExcelWriter excelWriter=new ExcelWriter(new WriteWorkbook());
+        try{
+            File templateFile = new File(fileName);
+            File destFile = new File("gen_"+fileName);
+            excelWriter = EasyExcel.write(templateFile).withTemplate(templateFile)
+                    //.file() 指定目标文件，不能与模板文件是同一个文件
+                    .file(destFile).autoCloseStream(false).build();
+
+/*            WriteSheet writeSheetTableListDomestic = EasyExcel.writerSheet("全表清单").registerWriteHandler(new HyperlinkTableListCellWriteHandler(sheetListDomestic)).build();
+            excelWriter.write(tableListDomestic, writeSheetTableListDomestic);
+            WriteSheet writeSheetTableListOverseas = EasyExcel.writerSheet("全表清单").registerWriteHandler(new HyperlinkTableListCellWriteHandler(sheetListOverseas)).build();
+            excelWriter.write(tableListOverseas, writeSheetTableListOverseas);*/
+            List<List<String>> tableList = ObjectHandle.mergeList(tableListDomestic, tableListOverseas);
+            List<String> sheetList = ObjectHandle.mergeList(sheetListDomestic, sheetListOverseas);
+            WriteSheet writeSheetTableList=EasyExcel.writerSheet("全表清单").registerWriteHandler(new HyperlinkTableListCellWriteHandler(sheetList)).build();
+            excelWriter.write(tableList, writeSheetTableList);
+
+            WriteSheet writeSheetPartIn = EasyExcel.writerSheet("已入仓表未入仓字段").build();
+            excelWriter.write(partInListDomestic, writeSheetPartIn);
+            excelWriter.write(partInListOverseas, writeSheetPartIn);
+
+            WriteSheet writeSheetNotIn = EasyExcel.writerSheet("未入仓表").build();
+            excelWriter.write(notInListDomestic, writeSheetNotIn);
+            excelWriter.write(notInListOverseas, writeSheetNotIn);
+            for(String key :alreadyInMapDomestic.keySet()){
+                List<List<String>> lls = alreadyInMapDomestic.get(key);
+                String s = lls.get(lls.size()-1).get(0);
+                lls.remove(lls.size()-1);
+                WriteSheet writeSheet = EasyExcel.writerSheet(s).head(headList).registerWriteHandler(new HyperlinkAlreadyInCellWriteHandler()).build();
+                excelWriter.write(lls,writeSheet);
+            }
+            for(String key :alreadyInMapOverseas.keySet()){
+                List<List<String>> lls = alreadyInMapOverseas.get(key);
+                String s = lls.get(lls.size()-1).get(0);
+                lls.remove(lls.size()-1);
+                WriteSheet writeSheet = EasyExcel.writerSheet(s).head(headList).registerWriteHandler(new HyperlinkAlreadyInCellWriteHandler()).build();
+                excelWriter.write(lls,writeSheet);
+            }
+
+/*            WriteSheet writeSheetTest = EasyExcel.writerSheet("测试").head(headList).registerWriteHandler(new HyperlinkAlreadyInCellWriteHandler()).build();
+            excelWriter.write(tableList,writeSheetTest);*/
+            logger.info("写入 "+"gen_"+fileName+" 成功");
+        }catch(Exception e){
+            logger.error("写入 "+"gen_"+fileName+" 失败");
+            e.printStackTrace();
+        }finally {
+            // 千万别忘记finish 会帮忙关闭流
+            if (excelWriter != null) {
+                excelWriter.finish();
+            }
+        }
+    }
+
 
     //将输入的list 根据表名进行拆分
     public Map<String, List<List<String>>> splitList(List<List<String>> lsInput){
@@ -346,8 +472,58 @@ public class ReduceDiameter {
         return retLs;
     }
 
-    //写入数据转换
-    public Map<String,List<List<String>>> convertToAlreadyLn(Map<String,List<List<String>>> mapLnput){
-        return mapLnput;
+    //写入数据转换,最后一个list是sheet名
+    public Map<String,List<List<String>>> convertToAlreadyIn(Map<String,List<List<String>>> mapInput,String type){
+        LinkedHashMap<String,List<List<String>>> retMap= new LinkedHashMap<>();
+        for(String key : mapInput.keySet()){
+            List<List<String>> lls = mapInput.get(key);
+            List<List<String>> retLls = new ArrayList<>();
+            for(int i = 0; i < lls.size(); i++){
+                List<String> ls = lls.get(i);
+                List<String> retLs = new ArrayList<>();
+                retLs.add(ls.get(0));
+                retLs.add(ls.get(2));
+                retLs.add(ls.get(3));
+                retLs.add(ls.get(4));
+                retLs.add(ls.get(5));
+                retLs.add(ls.get(10));
+                retLs.add(ls.get(11));
+                retLs.add(ls.get(16));
+                retLs.add(ls.get(18));
+                retLs.add(null);
+                retLs.add(null);
+                retLs.add(null);
+                retLs.add(null);
+                if(ls.get(20)==null){
+                    retLs.add(null);
+                    retLs.add("直取");
+                }else{
+                    if(ls.get(20).startsWith("T1.")){
+                        retLs.add(null);
+                        retLs.add("直取");
+                    }else{
+                        retLs.add(ls.get(20));
+                        retLs.add(null);
+                    }
+                }
+                retLs.add(null);
+                retLls.add(retLs);
+                //加个sheet名,在最后一行字段匹配的m表中文名
+                if(i==lls.size()-1){
+                    List<String> temp=new ArrayList<String>();
+                    if(type.equals("国内")){
+                        temp.add(ls.get(15));
+                    }
+                    else{
+                        temp.add(ls.get(15)+"-海外");
+                    }
+                    retLls.add(temp);
+                }
+            }
+            retMap.put(key,retLls);
+        }
+        return retMap;
     }
+
+
 }
