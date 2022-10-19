@@ -1,9 +1,13 @@
 package com.datawarehouse.excelgenerate.service;
 
+import com.datawarehouse.excelgenerate.entity.DemandInputTemplateDetail;
 import com.datawarehouse.excelgenerate.entity.SdmExcelOffical;
+import com.datawarehouse.excelgenerate.entity.reduceDiameter.InputAndSdmField;
+import com.datawarehouse.excelgenerate.entity.reduceDiameter.StandardDataExcel;
 import com.sun.scenario.effect.impl.sw.sse.SSEBlend_SRC_OUTPeer;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import org.springframework.beans.BeanUtils;
 import org.springframework.stereotype.Service;
 
 import java.util.ArrayList;
@@ -22,15 +26,133 @@ public class FieldIsWarehousing implements Callable {
     private static final Logger logger = LoggerFactory.getLogger(FieldIsWarehousing.class);
     private String inputStr;
     private List<SdmExcelOffical> sdmExcelOfficalList;
+    private DemandInputTemplateDetail detail;
+    private List<StandardDataExcel> standardList;
     public FieldIsWarehousing(){
 
     }
-    public FieldIsWarehousing(String inputStr, List<SdmExcelOffical> sdmExcelOfficalList){
+    public FieldIsWarehousing(String inputStr, List<SdmExcelOffical> sdmExcelOfficalList,DemandInputTemplateDetail detail,List<StandardDataExcel> standardList){
         this.inputStr = inputStr;
         this.sdmExcelOfficalList = sdmExcelOfficalList;
+        this.detail = detail;
+        this.standardList = standardList;
+    }
+    //为了去除一个源字段对应多个目标字段的情况，如参与方编号等不在考虑范围内
+    public List<SdmExcelOffical> removeDuplicateMTableNameCnTechnologyField(List<SdmExcelOffical> inputLs){
+        if(inputLs.size()>1){
+            for(int i=0; i<inputLs.size(); i++){
+                String targetFieldNameCn = inputLs.get(i).getTargetFieldNameCn();
+                if(technologyFieldLs().contains(targetFieldNameCn)){
+                    inputLs.remove(i--);
+                }
+            }
+        }
+        return inputLs;
     }
 
-    public List<SdmExcelOffical> matchField(){
+    public List<SdmExcelOffical> removeDuplicateMTableNameEnHst(List<SdmExcelOffical> inputLs){
+        //hst表
+        if(inputLs.size()>1){
+            int countHst =0;
+            for(int i=0; i<inputLs.size(); i++){
+                String targetTableNameEn = inputLs.get(i).getTargetTableNameEn().toLowerCase();
+                if(targetTableNameEn.endsWith("_hst")) countHst++;
+            }
+            if(countHst>0&&countHst<inputLs.size()){
+                List<SdmExcelOffical> list = new ArrayList<SdmExcelOffical>();
+                for(int j=0; j<inputLs.size(); j++){
+                    String targetTableNameEn = inputLs.get(j).getTargetTableNameEn().toLowerCase();
+                    if(!targetTableNameEn.endsWith("_hst")){
+                        list.add(inputLs.get(j));
+                    }
+                }
+                inputLs=list;
+            }
+        }
+        return inputLs;
+    }
+
+    public List<SdmExcelOffical> removeDuplicateMTableNameCnTypeCode(List<SdmExcelOffical> inputLs){
+        //类型代码
+        if(inputLs.size()>1){
+            int countTypeCode=0;
+            for(int i=0; i<inputLs.size(); i++){
+                String targetTableNameCn = inputLs.get(i).getTargetTableNameCn().toLowerCase();
+                if(targetTableNameCn.endsWith("类型代码")) countTypeCode++;
+            }
+            if(countTypeCode>0&&countTypeCode<inputLs.size()){
+                List<SdmExcelOffical> list = new ArrayList<SdmExcelOffical>();
+                for(int j=0; j<inputLs.size(); j++){
+                    String targetTableNameCn = inputLs.get(j).getTargetTableNameCn().toLowerCase();
+                    if(!targetTableNameCn.endsWith("类型代码")){
+                        list.add(inputLs.get(j));
+                    }
+                }
+                inputLs=list;
+            }
+        }
+        return inputLs;
+    }
+
+    public List<SdmExcelOffical> removeDuplicateMTableNameCnPossessorNumber(List<SdmExcelOffical> inputLs){
+        if(inputLs.size()>1){
+            int countPossessorNumber=0;
+            int countCustomerNumber=0;
+            for(int i=0; i<inputLs.size(); i++){
+                String targetTableNameCn = inputLs.get(i).getTargetTableNameCn().toLowerCase();
+                if(targetTableNameCn.endsWith("持有人编号")) countPossessorNumber++;
+                if(targetTableNameCn.endsWith("客户编号"))  countCustomerNumber++;
+            }
+            if(countPossessorNumber>0&&countCustomerNumber>0){
+                List<SdmExcelOffical> list = new ArrayList<SdmExcelOffical>();
+                for(int j=0; j<inputLs.size(); j++){
+                    String targetTableNameCn = inputLs.get(j).getTargetTableNameCn().toLowerCase();
+                    if(!targetTableNameCn.endsWith("持有人编号")){
+                        list.add(inputLs.get(j));
+                    }
+                }
+                inputLs=list;
+            }
+        }
+        return inputLs;
+    }
+    public List<SdmExcelOffical> removeDuplicateMTableNameEn(List<SdmExcelOffical> inputLs){
+        Boolean isHasField = false;
+        if(inputLs.size()>1){
+            List<SdmExcelOffical> list = new ArrayList<SdmExcelOffical>();
+            for(SdmExcelOffical s:inputLs){
+                String targetTableNameEn = s.getTargetTableNameEn().toUpperCase();
+                if(targetTableNameEn!=null){
+                    if(!targetTableNameEn.equals("M_3AG_CNTRCT")){
+                        isHasField=true;
+                        list.add(s);
+                    }
+                }
+            }
+            if(isHasField){
+                inputLs=list;
+            }
+        }
+        return inputLs;
+    }
+
+    public List<String> technologyFieldLs (){
+        List<String> retLs = new ArrayList<>();
+        retLs.add("参与方编号");
+        retLs.add("参与方编号(数仓)");
+        retLs.add("合约编号");
+        retLs.add("合约编号(数仓)");
+        retLs.add("事件编号");
+        retLs.add("事件编号(数仓)");
+        retLs.add("角色编号");
+        retLs.add("角色编号(数仓)");
+        retLs.add("产品编号");
+        retLs.add("产品编号(数仓)");
+        retLs.add("法人机构编号");
+        retLs.add("中银集团银行号");
+        return retLs;
+    }
+    public List<SdmExcelOffical> matchFieldSdm(){
         List<SdmExcelOffical> sdmListRet = new ArrayList<SdmExcelOffical>();
         for (int i = 0; i < sdmExcelOfficalList.size(); i++) {
             SdmExcelOffical sdmExcelOffical = sdmExcelOfficalList.get(i);
@@ -57,14 +179,79 @@ public class FieldIsWarehousing implements Callable {
         }
         return sdmListRet;
     }
+
+    public StandardDataExcel matchFieldStandard(){
+        StandardDataExcel standardDataExcel = new StandardDataExcel();
+
+        if(standardList!=null){
+            for(StandardDataExcel s:standardList){
+                if(s!=null){
+                    String sysId = s.getSysId();
+                    if(sysId!=null){
+                        if(sysId.length()==1){
+                            sysId = "0".concat(sysId);
+                        }
+                    }
+                    String splice = sysId+"_"+s.getSrcTableName()+"_"+s.getSrcFieldName();
+                    if(inputStr!=null){
+                        if(inputStr.toLowerCase().equals(splice.toLowerCase())){
+                            standardDataExcel = s;
+                        }
+                    }
+                }
+            }
+        }
+        return standardDataExcel;
+    }
+
     @Override
-    public List<SdmExcelOffical> call(){
-        List<SdmExcelOffical> ls = new ArrayList<SdmExcelOffical>();
+    public List<InputAndSdmField> call(){
+        List<InputAndSdmField> retLs = new ArrayList<InputAndSdmField>();
         try{
-            ls = matchField();
+            List<SdmExcelOffical> sdmList = matchFieldSdm();
+            StandardDataExcel standard = matchFieldStandard();
+            //去除技术字段
+            List<SdmExcelOffical>tempRemoveDuplicate= removeDuplicateMTableNameCnTechnologyField(sdmList);
+            if(tempRemoveDuplicate.size()>0)    sdmList = tempRemoveDuplicate;
+            //去除 3AG合约主表
+            tempRemoveDuplicate =removeDuplicateMTableNameEn(sdmList);
+            if(tempRemoveDuplicate.size()>0)    sdmList = tempRemoveDuplicate;
+            //去除持有人编号
+            tempRemoveDuplicate =removeDuplicateMTableNameCnPossessorNumber(sdmList);
+            if(tempRemoveDuplicate.size()>0)    sdmList = tempRemoveDuplicate;
+            //去除类型代码
+            tempRemoveDuplicate =removeDuplicateMTableNameCnTypeCode(sdmList);
+            if(tempRemoveDuplicate.size()>0)    sdmList = tempRemoveDuplicate;
+            //去除历史表
+            tempRemoveDuplicate =removeDuplicateMTableNameEnHst(sdmList);
+            if(tempRemoveDuplicate.size()>0)    sdmList = tempRemoveDuplicate;
+
+
+            //防止报空指针异常
+            for(SdmExcelOffical sdmRet : sdmList){
+                InputAndSdmField inputAndSdmField = new InputAndSdmField();
+                inputAndSdmField.setSrcSystem( detail.getSrcSystem());
+                //将属性相同的值复制过去
+                BeanUtils.copyProperties(detail, inputAndSdmField);
+                BeanUtils.copyProperties(sdmRet, inputAndSdmField);
+                BeanUtils.copyProperties(standard, inputAndSdmField);
+                retLs.add(inputAndSdmField);
+            }
         }catch(Exception e){
             logger.error("匹配字段出错，请检查sdm和输入文件");
         }
-        return ls;
+
+        /*List<SdmExcelOffical> sdmList= prime.get();
+
+        //防止报空指针异常
+        for(SdmExcelOffical sdmRet : sdmList){
+            InputAndSdmField inputAndSdmField = new InputAndSdmField();
+            inputAndSdmField.setSrcSystem( detailDomestic.getSrcSystem());
+            //将属性相同的值复制过去
+            BeanUtils.copyProperties(detailDomestic, inputAndSdmField);
+            BeanUtils.copyProperties(sdmRet, inputAndSdmField);
+            lsRet.add(inputAndSdmField);
+        }*/
+        return retLs;
     }
 }

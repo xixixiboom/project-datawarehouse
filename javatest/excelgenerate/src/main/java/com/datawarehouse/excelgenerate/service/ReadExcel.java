@@ -6,11 +6,14 @@ import com.alibaba.excel.read.metadata.ReadSheet;
 import com.datawarehouse.excelgenerate.config.*;
 import com.datawarehouse.excelgenerate.entity.*;
 import com.datawarehouse.excelgenerate.service.listener.CommonExcelListener;
+import com.datawarehouse.excelgenerate.service.listener.CommonExcelListenerWithoutClass;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 
+import java.util.ArrayList;
+import java.util.LinkedHashMap;
 import java.util.List;
 
 @Service
@@ -155,6 +158,40 @@ public class ReadExcel {
             logger.error("读取EXCEL失败");
         }
         return list;
+    }
+
+    public List<LinkedHashMap<Integer,String>> doReadCommonExcel(String excelFileName, String excelSheetName ){
+        ExcelReader excelReader = null;
+        List<LinkedHashMap<Integer,String>> retLls= new ArrayList<>();
+        try {
+            CommonExcelListener commonExcelListener = new CommonExcelListener();
+            excelReader = EasyExcel.read(excelFileName,
+                    commonExcelListener).build();
+            // 构建一个sheet 这里可以指定名字或者no
+            ReadSheet readSheet = EasyExcel.readSheet(excelSheetName).build();
+            if(excelSheetName.contains("字段级信息")){
+                readSheet = EasyExcel.readSheet(excelSheetName).headRowNumber(2).build();
+            }
+
+            // 读取一个sheet
+            excelReader.read(readSheet);
+            retLls = commonExcelListener.getDatas();
+            logger.info("读取"+excelFileName+"-"+excelSheetName+" "+retLls.size()+"条信息");
+
+        }catch(Exception e){
+            logger.error("=====error=====读取"+excelFileName+"-"+excelSheetName+"失败，请检查yml文件信息并检查原文件是否存在并检查sheet表头行数======");
+            e.printStackTrace();
+        }
+        finally{
+            if (excelReader != null) {
+                // 这里千万别忘记关闭，读的时候会创建临时文件，到时磁盘会崩的
+                excelReader.close();
+            }
+        }
+        if(retLls == null){
+            logger.error("读取EXCEL失败");
+        }
+        return retLls;
     }
 
 

@@ -217,4 +217,25 @@ public class InputAndSdmField {
     @ExcelProperty(value = "较生产基线")
 //    @ExcelProperty(index=43)
     private String compareProductionBaseline2;*/
+
+    @ExcelProperty("字典ID")
+    public String dicId;
+
+    @ExcelProperty("字典名称")
+    public String dicNameCn;
+
+    @ExcelProperty("英文简称")
+    public String dicNameEn;
+
+    @ExcelProperty("数据项说明")
+    public String dataDescription;
+
+    @ExcelProperty("数据类型")
+    public String dataType;
+
+    @ExcelProperty("引用代码编号")
+    public String citeCodeNumber;
+
+    @ExcelProperty("代码集名称")
+    public String codeSetName;
 }

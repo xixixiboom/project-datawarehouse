@@ -30,17 +30,20 @@ public class HyperlinkTableListCellWriteHandler implements CellWriteHandler {
     @Override
     public void afterCellDispose(CellWriteHandlerContext context) {
 
-
         Cell cell = context.getCell();
         // 这里可以对cell进行任何操作
 //        LOGGER.info("第{}行，第{}列写入完成。", cell.getRowIndex(), cell.getColumnIndex());
         if(listSheet!=null&&listSheet.size()>0){
             if(cell.getColumnIndex()==2){
                 String sTable = listSheet.get(0);
-                CreationHelper createHelper = context.getWriteSheetHolder().getSheet().getWorkbook().getCreationHelper();
-                Hyperlink hyperlink = createHelper.createHyperlink(HyperlinkType.DOCUMENT);
-                hyperlink.setAddress(sTable+"!A1");
-                cell.setHyperlink(hyperlink);
+
+                if(!sTable.equals("此处无需超链接")){
+                    CreationHelper createHelper = context.getWriteSheetHolder().getSheet().getWorkbook().getCreationHelper();
+                    Hyperlink hyperlink = createHelper.createHyperlink(HyperlinkType.DOCUMENT);
+                    hyperlink.setAddress(sTable+"!A1");
+                    cell.setHyperlink(hyperlink);
+                }
+
                 listSheet.remove(0);
                 /*Workbook workbook = context.getWriteSheetHolder().getSheet().getWorkbook();
                 CellStyle cellStyle = workbook.createCellStyle();
@@ -51,18 +54,5 @@ public class HyperlinkTableListCellWriteHandler implements CellWriteHandler {
                 cellStyle.setFillPattern(FillPatternType.SOLID_FOREGROUND);//必须设置 否则无效*/
             }
         }
-
-//        if (BooleanUtils.isTrue(context.getHead()) && cell.getColumnIndex() == 0) {
-/*        if (cell.getRowIndex()==26&& cell.getColumnIndex() == 1) {
-            CreationHelper createHelper = context.getWriteSheetHolder().getSheet().getWorkbook().getCreationHelper();
-            Hyperlink hyperlink = createHelper.createHyperlink(HyperlinkType.DOCUMENT);
-            hyperlink.setAddress("未入仓表结构!B501");
-            cell.setHyperlink(hyperlink);
-        }*/
-
-
     }
-
-
-
 }

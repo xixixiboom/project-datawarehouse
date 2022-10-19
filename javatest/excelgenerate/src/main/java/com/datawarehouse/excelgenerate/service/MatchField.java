@@ -3,6 +3,7 @@ package com.datawarehouse.excelgenerate.service;
 import com.datawarehouse.excelgenerate.config.MatchFieldConfig;
 import com.datawarehouse.excelgenerate.entity.*;
 import com.datawarehouse.excelgenerate.entity.reduceDiameter.InputAndSdmField;
+import com.datawarehouse.excelgenerate.entity.reduceDiameter.StandardDataExcel;
 import com.datawarehouse.excelgenerate.mapper.CommonMapper;
 import com.datawarehouse.excelgenerate.utils.ObjectHandle;
 import org.hibernate.tool.schema.internal.exec.ScriptTargetOutputToFile;
@@ -62,6 +63,30 @@ public class MatchField {
         return list;
     }
 
+    //初始化落标excel
+    public List<List<StandardDataExcel>> initStandardDataExcel(){
+        List<StandardDataExcel> retLsDomestic = new ArrayList<>();
+        List<StandardDataExcel> retLsOverseas = new ArrayList<>();
+        List<List<StandardDataExcel>> retLLs = new ArrayList<>();
+        String domesticFileName=matchFieldConfig.getDomesticStandardDataFileName();
+        String domesticSheetName = matchFieldConfig.getDomesticStandardDataSheetName();
+        String overseasFileName = matchFieldConfig.getOverseasStandardDataFileName();
+        String overseasStandardDataSheetName = matchFieldConfig.getOverseasStandardDataSheetName();
+        if(domesticFileName!=null&&domesticSheetName!=null){
+            retLsDomestic = readExcel.doReadCommonExcel(domesticFileName,domesticSheetName,StandardDataExcel.class);
+            if(retLsDomestic==null) logger.error("国内落标excel读取到0条数据");
+            logger.info("读取"+domesticFileName+"成功，"+"共计"+retLsDomestic.size()+"条数据");
+        }
+        if(!overseasFileName.equals("")&&!overseasStandardDataSheetName.equals("")){
+            retLsOverseas = readExcel.doReadCommonExcel(overseasFileName,overseasStandardDataSheetName,StandardDataExcel.class);
+            if(retLsOverseas==null) logger.error("海外落标excel读取到0条数据");
+            logger.info("读取"+overseasFileName+"成功，"+"共计"+retLsOverseas.size()+"条数据");
+        }
+        retLLs.add(retLsDomestic);
+        retLLs.add(retLsOverseas);
+        return retLLs;
+    }
+
     public List<List<DemandInputTemplateDetail>> judgeDomesticOrOverseas(List<DemandInputTemplateDetail> listDetail ){
         List<List<DemandInputTemplateDetail>>ls=new ArrayList<>();
         List<DemandInputTemplateDetail> domestic = new ArrayList<>();
@@ -79,7 +104,7 @@ public class MatchField {
         }
         ls.add(domestic);
         ls.add(overseas);
-        logger.info("国内表共"+domestic.size()+"张,海外表共"+overseas.size()+"张");
+        logger.info("国内字段共"+domestic.size()+"条记录,海外字段共"+overseas.size()+"条记录");
         return ls;
     }
 
@@ -108,7 +133,6 @@ public class MatchField {
                 }
  /*               if(srcSystem.endsWith("-国内")||srcSystem.endsWith("-海外")){
                 }*/
-
             }
         }
         return listDetail;
@@ -162,12 +186,19 @@ public class MatchField {
         List<String> spliceDomesticList = getSpliceTableAndFieldNameList(detailsDomestic);
         List<String> spliceOverseasList = getSpliceTableAndFieldNameList(detailsOverseas);
 
+        //落标excel
+        List<List<StandardDataExcel>> llsStandard = initStandardDataExcel();
+        List<StandardDataExcel> standardLsDomestic = llsStandard.get(0);
+        List<StandardDataExcel> standardLsOverseas = llsStandard.get(1);
+        for(StandardDataExcel sss:standardLsDomestic) {
+        }
+
         List<List<InputAndSdmField>> lls = new ArrayList<>();
         //国内遍历
-        List<InputAndSdmField> sdmMatchListDomestic = doMatch(spliceDomesticList, sdmListDomestic, detailsDomestic);
+        List<InputAndSdmField> sdmMatchListDomestic = doMatch(spliceDomesticList, sdmListDomestic, detailsDomestic,standardLsDomestic);
 
         //国外遍历
-        List<InputAndSdmField> sdmMatchListOverseas = doMatch(spliceOverseasList, sdmListOverseas, detailsOverseas);
+        List<InputAndSdmField> sdmMatchListOverseas = doMatch(spliceOverseasList, sdmListOverseas, detailsOverseas,standardLsOverseas);
         lls.add(sdmMatchListDomestic);
         lls.add(sdmMatchListOverseas);
         //写入文件
@@ -191,29 +222,18 @@ public class MatchField {
 
     }
 
-    public List<InputAndSdmField> doMatch(List<String> splicList,List<SdmExcelOffical>sdmListBasic,List<DemandInputTemplateDetail>details){
+    public List<InputAndSdmField> doMatch(List<String> spliceList,List<SdmExcelOffical>sdmListBasic,List<DemandInputTemplateDetail>details,List<StandardDataExcel> standardList){
         List<InputAndSdmField> lsRet = new ArrayList<>();
-        for(int i=0;i<splicList.size();i++){
-            String spliceDomestic = splicList.get(i);
-            FieldIsWarehousing fieldIsWarehousing = new FieldIsWarehousing(spliceDomestic, sdmListBasic);
+        for(int i=0;i<spliceList.size();i++){
+            String spliceDomestic = spliceList.get(i);
+            DemandInputTemplateDetail detailDomestic = details.get(i);
+            FieldIsWarehousing fieldIsWarehousing = new FieldIsWarehousing(spliceDomestic, sdmListBasic,detailDomestic,standardList);
             ExecutorService service = Executors.newFixedThreadPool(9);
-            Future<List<SdmExcelOffical>> prime = service.submit(fieldIsWarehousing);
+            Future<List<InputAndSdmField>> prime = service.submit(fieldIsWarehousing);
 //            SdmExcelOffical sdmExcelOffical = new SdmExcelOffical();
             try {
-                List<SdmExcelOffical> sdmList= prime.get();
-                if(removeDuplicate(sdmList).size()>0){
-                    sdmList = removeDuplicate(sdmList);
-                }
-                DemandInputTemplateDetail detailDomestic = details.get(i);
-                //防止报空指针异常
-                for(SdmExcelOffical sdmRet : sdmList){
-                    InputAndSdmField inputAndSdmField = new InputAndSdmField();
-                    inputAndSdmField.setSrcSystem( detailDomestic.getSrcSystem());
-                    //将属性相同的值复制过去
-                    BeanUtils.copyProperties(detailDomestic, inputAndSdmField);
-                    BeanUtils.copyProperties(sdmRet, inputAndSdmField);
-                    lsRet.add(inputAndSdmField);
-                }
+                List<InputAndSdmField> inputAndSdmFieldList= prime.get();
+                lsRet.addAll(inputAndSdmFieldList);
 /*                Object o = ObjectHandle.mergerData(detailDomestic, inputAndSdmField);
                 InputAndSdmField inputAndSdmListDomestic = (InputAndSdmField)(ObjectHandle.mergerData(sdmExcelOffical, o));*/
             } catch (InterruptedException e) {
@@ -225,33 +245,7 @@ public class MatchField {
         return lsRet;
     }
 
-    //为了去除一个源字段对应多个目标字段的情况，如参与方编号等不在考虑范围内
-    public List<SdmExcelOffical> removeDuplicate(List<SdmExcelOffical> inputLs){
-        if(inputLs.size()>1){
-            for(int i=0; i<inputLs.size(); i++){
-                String targetFieldNameCn = inputLs.get(i).getTargetFieldNameCn();
-                if(technologyFieldLs().contains(targetFieldNameCn)){
-                    inputLs.remove(i--);
-                }
-            }
-        }
-        return inputLs;
-    }
-
     //生成技术字段的list
-    public List<String> technologyFieldLs (){
-        List<String> retLs = new ArrayList<>();
-        retLs.add("参与方编号");
-        retLs.add("参与方编号(数仓)");
-        retLs.add("合约编号");
-        retLs.add("合约编号(数仓)");
-        retLs.add("事件编号");
-        retLs.add("事件编号(数仓)");
-        retLs.add("角色编号");
-        retLs.add("角色编号(数仓)");
-        retLs.add("法人机构编号");
-        retLs.add("中银集团银行号");
-        return retLs;
-    }
+
 
 }

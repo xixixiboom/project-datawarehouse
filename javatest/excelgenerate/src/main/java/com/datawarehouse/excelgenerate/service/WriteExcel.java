@@ -6,16 +6,20 @@ import com.alibaba.excel.ExcelWriter;
 //import com.alibaba.excel.support.ExcelTypeEnum;
 import com.alibaba.excel.write.metadata.WriteSheet;
 import com.alibaba.excel.write.metadata.WriteWorkbook;
+import com.alibaba.excel.write.metadata.fill.FillConfig;
 import com.alibaba.excel.write.style.column.LongestMatchColumnWidthStyleStrategy;
 import com.datawarehouse.excelgenerate.config.InputExcelConfig;
 import com.datawarehouse.excelgenerate.config.OutputExcelConfig;
+import com.datawarehouse.excelgenerate.service.easyExcelSet.CommonCellWriteWriteHandler;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 
 import java.io.File;
+import java.util.ArrayList;
 import java.util.List;
+import java.util.Map;
 
 @Service
 public class WriteExcel {
@@ -38,6 +42,8 @@ public class WriteExcel {
             File templateFile = new File(fileName);
             File destFile = new File("gen_"+fileName);
             WriteSheet writeSheet = EasyExcel.writerSheet(sheetName).build();
+            //强制下一行追加写
+            FillConfig fillConfig = FillConfig.builder().forceNewRow(true).build();
             if(templateFile.exists()){
                 excelWriter = EasyExcel.write(templateFile).withTemplate(templateFile)
                         //.file() 指定目标文件，不能与模板文件是同一个文件
@@ -46,7 +52,37 @@ public class WriteExcel {
             }else{
                 excelWriter = EasyExcel.write(templateFile).build();
             }
-            excelWriter.write(data, writeSheet);
+            excelWriter.fill(data,fillConfig, writeSheet);
+            logger.info("写入 "+fileName+" 成功");
+        }catch(Exception e){
+            logger.error("写入 "+fileName+" 失败");
+            e.printStackTrace();
+        }finally {
+            // 千万别忘记finish 会帮忙关闭流
+            if (excelWriter != null) {
+                excelWriter.finish();
+            }
+        }
+    }
+
+    public void writeCommon(String fileName, Map<String,List<List<String>>> map){
+        ExcelWriter excelWriter=new ExcelWriter(new WriteWorkbook());
+        try{
+            File templateFile = new File(fileName);
+            File destFile = new File("gen_"+fileName);
+            if(templateFile.exists()){
+                excelWriter = EasyExcel.write(templateFile).withTemplate(templateFile)
+                        //.file() 指定目标文件，不能与模板文件是同一个文件
+                        .file(destFile).autoCloseStream(false).build();
+                /*EasyExcel.write(fileName).withTemplate(fileName).sheet(sheetName).doWrite(data);*/
+            }else{
+                excelWriter = EasyExcel.write(templateFile).build();
+            }
+            for(String sheetName:map.keySet()){
+                List<List<String>> data = map.get(sheetName);
+                WriteSheet writeSheet = EasyExcel.writerSheet(sheetName).build();
+                excelWriter.write(data, writeSheet);
+            }
             logger.info("写入 "+fileName+" 成功");
         }catch(Exception e){
             logger.error("写入 "+fileName+" 失败");
@@ -59,7 +95,7 @@ public class WriteExcel {
         }
     }
     public void writeCommon(String fileName,String sheetName,List<List<String>> data,List<List<String>>headList){
-        ExcelWriter excelWriter = EasyExcel.write(fileName).registerWriteHandler(new LongestMatchColumnWidthStyleStrategy()).build();
+        ExcelWriter excelWriter = EasyExcel.write(fileName).registerWriteHandler(new LongestMatchColumnWidthStyleStrategy()).registerWriteHandler(new CommonCellWriteWriteHandler()).build();
         try{
             File destFile = new File(fileName);
             WriteSheet writeSheet = EasyExcel.writerSheet(sheetName).head(headList).build();

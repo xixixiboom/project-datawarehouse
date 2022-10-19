@@ -94,7 +94,7 @@ findCRelation:
   overseasSdmExcelSheetName:
   domesticOutputExcelName: 1.xlsx
   overseasOutputExcelName: 2.xlsx
-#input8
+#input8 input11
 dataLakeInfo:
   demandInputTemplateTableListFileName:
   demandInputTemplateTableListSheetName:
@@ -116,6 +116,10 @@ matchField:
   dateDomesticLowerLimit:
   dateOverseasUpperLimit:
   dateOverseasLowerLimit:
+  domesticStandardDataFileName:
+  domesticStandardDataSheetName:
+  overseasStandardDataFileName:
+  overseasStandardDataSheetName:
 #input10
 version:
   destDir: D:\javanote\javatest\excelgenerate\target
@@ -125,6 +129,20 @@ version:
     - xlsx
     - txt
     - class
+# input12
+sinkInterface:
+  cPdmFileName: 物理模型_CEA.xlsx
+  cPdmSheetChangeRecord: 修改记录
+  cPdmSheetFieldInfo: 字段级信息
+  cPdmChangeTimeUpperLimit: 2022/7/12
+  cPdmChangeTimeLowerLimit: 2022/6/28
+  outputFileName: 模板12-湖仓下沉接口模板-企架1.2.xlsx
+#input13
+overseasDcdsProvince:
+  dcdsProvinceScopeExcelName:
+  dcdsProvinceScopeSheetName:
+  outputFileName:
+
 spring:
   datasource:
 #    # T2 调度知识库

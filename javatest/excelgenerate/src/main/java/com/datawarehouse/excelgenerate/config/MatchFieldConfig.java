@@ -27,4 +27,8 @@ public class MatchFieldConfig {
     private Integer dateDomesticLowerLimit;
     private Integer dateOverseasUpperLimit;
     private Integer dateOverseasLowerLimit;
+    private String domesticStandardDataFileName;
+    private String domesticStandardDataSheetName;
+    private String overseasStandardDataFileName;
+    private String overseasStandardDataSheetName;
 }

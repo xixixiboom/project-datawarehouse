@@ -47,6 +47,10 @@ public class MainThread implements ApplicationRunner {
     Version version;
     @Autowired
     ReduceDiameter reduceDiameter;
+    @Autowired
+    SinkInterface sinkInterface;
+    @Autowired
+    OverseasDcdsProvinceScope overseasDcdsProvinceScope;
     public void run(ApplicationArguments args) throws Exception {
 //        initFile.initFile(outputExcelConfig.getOutputExcelFileName());
 
@@ -63,6 +67,8 @@ public class MainThread implements ApplicationRunner {
             System.out.println("返回字段匹配是否入仓结果-----------input:9----注意输入为数仓需求模板且明细页增加一列系统标识");
             System.out.println("版本相关获取所有文件名-------input:10");
             System.out.println("生成还原口径---------input：11");
+            System.out.println("生成下沉接口-----------input：12");
+            System.out.println("dcds海外分省范围梳理---------input : 13");
             System.out.println("关闭程序-------------input：0");
             if(sc.hasNext()){
                 String inputStr = sc.nextLine();
@@ -84,7 +90,6 @@ public class MainThread implements ApplicationRunner {
                 else if(num==4){
                     sftpUtils.doUpload(uploadFileConfig.getIp(),uploadFileConfig.getUserName(),uploadFileConfig.getPassWord(),uploadFileConfig.getPort(),uploadFileConfig.getLocalAndRemoteDir());
                 }
-
                 else if(num==5){
 //                    String[][] realtionExcel2 = findTableRelation.doReadRealtionExcel2();
 //                    findTableRelation.getRelationTree();
@@ -118,6 +123,9 @@ public class MainThread implements ApplicationRunner {
                 else if(num==11){
                     reduceDiameter.doWrite();
                 }
+                else if(num==12){
+                    sinkInterface.doWrite();
+                }else if(num ==13) overseasDcdsProvinceScope.doWrite();
                 else if(num==99){
                     new TestController().contextLoads();
                 }
