@@ -149,10 +149,10 @@ public class SinkInterface {
             if(ls.get(0)==null) continue;
 //            System.out.println(ls.get(0) +"..."+inputLs.get(4));
             if(ls.get(0).toUpperCase().equals(inputLs.get(4).toUpperCase())){
-                System.out.println(1);
                 retLs.add(convertTime(ls.get(1)));
+                break;
             }
-            break;
+
         }
         return retLs;
     }
@@ -169,11 +169,21 @@ public class SinkInterface {
 
 
 
+    /**
+     * @Description 匹配字段让变更时间只出现在变更的字段上
+     * @Date 2022/11/3 20:48
+     * @Param changeTableLs 所有变更记录去重过滤日期后的表名，即所有目标变更的表名
+     * @param allCPdmLls 字段信息中所有表结构数据
+     * @return changeLs 记录了变更sheet页的数据，是一个二维数组，    // lls:[字段英文名，变更时间] recordInfo:[lls]  change:[String] 每张表的变更记录
+     **/
+
     //写入新的list
     public List<List<String>> getChangeTableDetails(List<String> changeTableLs, List<LinkedHashMap<Integer,String>> allCPdmLls,List<List>changeLs) {
         List<List<String>> retLls = new ArrayList<>();
+        //记录表的字段数
         Map<String,Integer> countLs =new LinkedHashMap<>();
         List<List<List<String>>> changeContextLs = changeLs.get(1);
+
         for(String tableName : changeTableLs){
             int count =0;
             for (LinkedHashMap<Integer,String> cDetail : allCPdmLls) {
@@ -184,20 +194,27 @@ public class SinkInterface {
                 }
             }
         }
+        String countSout = "";
+        for(String key:countLs.keySet()) {
+            countSout += countLs.get(key)+";   ";
+        }
+        LOGGER.info("各表字段数分别为 "+countSout);
         for (int i=0; i<changeTableLs.size(); i++) {
             List<List<String>> lls = changeContextLs.get(i);
 //            System.out.println(lls);
+            String tableName = changeTableLs.get(i);
+            System.out.println(tableName);
             for (LinkedHashMap<Integer,String> cDetail : allCPdmLls) {
-                String tableName = changeTableLs.get(i);
-                String s = cDetail.get(3);
 
+                String s = cDetail.get(3);
                 if (tableName.toUpperCase().equals(s.toUpperCase())) {
-//                    System.out.println(lls);
+                    //在一张表内匹配
                     List<String> sinkTableStructure = cPdmToChangeTableStructure(cDetail,countLs,lls);
                     retLls.add(sinkTableStructure);
                 }
             }
         }
+
         return retLls;
     }
 
@@ -254,24 +271,20 @@ public class SinkInterface {
     }
 
     //获取每张表的变更内容,并转化成变更内容数据  [[],[[[]]]]
+    // lls:[字段英文名，变更时间] recordInfo:[lls]  change:[String] 每张表的变更记录
     public List<List> getChangeContext(List<String> tableList, List<LinkedHashMap<Integer,String>> inputLls) {
+        String upperTime = sinkInterfaceConfig.getCPdmChangeTimeUpperLimit();
+        String lowerTime = sinkInterfaceConfig.getCPdmChangeTimeLowerLimit();
         List<String> change = new ArrayList<>();
         //每张表各字段的（字段英文名，变更时间）
-        List<List<String>> recordInfo= new ArrayList<>();
+        List<List<List<String>>> recordInfo= new ArrayList<>();
         List<List> ret = new ArrayList<>();
-        //获取每张表变更种类
-        /*for(String tableName:tableList){
-            Set<String> tmp = new HashSet<>();
-            for (LinkedHashMap<Integer,String> inputLs : inputLls) {
-                String inputTableName = inputLs.get(3);
-                if(tableName.toUpperCase().equals(inputTableName.toUpperCase())) tmp.add(inputLs.get(13));
-            }
-            changeTypeMap.put(tableName, tmp);
-        }*/
         for (String tableName : tableList) {
 //            Set<String> changeT = changeTypeMap.get(tableName);
             Map<String,String> tempMap = new HashMap<String,String>();
-//            List<List<String>> lls = new ArrayList<>();
+            List<List<String>> lls = new ArrayList<>();
+            int count =0;
+
             for (LinkedHashMap<Integer,String> inputLs : inputLls) {
 
                 String inputTableName = inputLs.get(3);
@@ -281,11 +294,13 @@ public class SinkInterface {
                 String destValue = inputLs.get(15);
                 String changeTime = inputLs.get(11);
                 //获取变更记录
-                if(tableName.toUpperCase().equals(inputTableName.toUpperCase())) {
+                //表英文名相同，修改时间在范围内，则获取
+                if(tableName.toUpperCase().equals(inputTableName.toUpperCase())&&compareDate(changeTime, upperTime) != 1 && compareDate(lowerTime, changeTime) != 1) {
+                    count++;
                     List<String> ls = new ArrayList<>();
                     String ss=";";
                     if(srcValue!=null){
-                        ss=":"+srcValue.toUpperCase()+"->"+destValue.toUpperCase()+"; ";
+                        ss=":"+srcValue.toUpperCase()+"->"+destValue.toUpperCase()+";   ";
                     }
                     if(!tempMap.containsKey(changeType)){
                         tempMap.put(changeType,fieldNameEn+ss);
@@ -299,9 +314,10 @@ public class SinkInterface {
                     //record 获取变更时间，取字段英文名是为了后面匹配
                     ls.add(fieldNameEn);
                     ls.add(changeTime);
-                    recordInfo.add(ls);
+                    lls.add(ls);
                 }
             }
+            recordInfo.add(lls);
 //            System.out.println(recordInfo+"111111111111111111111111111111111111111111");
 
             String tempS = "";
@@ -310,10 +326,17 @@ public class SinkInterface {
             }
             change.add(tempS);
 
-            System.out.println(tempS+"22222222222222222222222222222222222");
+//            System.out.println(tempS+"22222222222222222222222222222222222");
         }
         ret.add(change);
         ret.add(recordInfo);
+
+        //记录修改记录条数
+        String countRecord = " ";
+        for(List<List<String>> record:recordInfo){
+            countRecord+=record.size()+";   ";
+        }
+        LOGGER.info("各修改记录条数分别为"+countRecord);
         return ret;
     }
 
@@ -351,7 +374,7 @@ public class SinkInterface {
                     //下发周期
                     tempLs.add("日");
                     //表类型
-                    tempLs.add("快照表");
+                    tempLs.add(null);
                     //使用类型
                     tempLs.add(null);
                     //用数方

@@ -77,10 +77,10 @@ public class ReduceDiameter {
         if (dateLowerLimit != null && dateUpperLimit != null) {
             for (List<String> ls : llsInput) {
                 String changeRecord = ls.get(8);
-                if (changeRecord != null && changeRecord.length() == 10 && !changeRecord.contains("删除")) {
+                if (changeRecord != null && changeRecord.length() >= 10 && !changeRecord.contains("删除")) {
                     String date = changeRecord.substring(0, 8);
                     Integer dateInt = Integer.parseInt(date);
-                    String changeType = changeRecord.substring(8);
+                    String changeType = changeRecord.substring(8,10);
                     if (changeType.equals("新增")) {
                         if (dateLowerLimit.equals(dateUpperLimit)) {
                             if (dateInt.equals(dateLowerLimit)) {
@@ -131,7 +131,7 @@ public class ReduceDiameter {
         //存已入仓字段
         List<List<String>> alreadyInList = new ArrayList<>();
         //记录字段入仓数,表名去重
-        for (int i = 0; i < row; i++) {
+/*        for (int i = 0; i < row; i++) {
             List<String> elementLs = inputLls.get(i);
             String spliceTableName = elementLs.get(1) + "_" + elementLs.get(2);
             spliceTableName = spliceTableName.toUpperCase();
@@ -152,6 +152,71 @@ public class ReduceDiameter {
                     }
                 }
             }
+            //确保记录的表的唯一性
+            if (!removeDuplicateTable.contains(spliceTableName)) {
+                removeDuplicateTable.add(spliceTableName);
+                countSrcFieldMap.put(spliceTableName, 1);
+                indexLs.add(i);
+            } else {
+                countSrcFieldMap.put(spliceTableName, countSrcFieldMap.get(spliceTableName) + 1);
+            }
+
+            if ("#N/A".equals(srcTableNameEn)) {
+                if (countTargetFieldMap.containsKey(spliceTableName)) {
+                    countTargetFieldMap.put(spliceTableName, countTargetFieldMap.get(spliceTableName) + 1);
+                } else {
+                    countTargetFieldMap.put(spliceTableName, 1);
+                }
+            }
+        }*/
+
+        //20221019 记录sheet页和表内容
+        Map<String, List<String>> idMap = new LinkedHashMap<>();
+        //记录字段入仓数,表名去重
+        for (int i = 0; i < row; i++) {
+            List<String> elementLs = inputLls.get(i);
+            String spliceTableName = elementLs.get(1) + "_" + elementLs.get(2);
+            spliceTableName = spliceTableName.toUpperCase();
+            String srcTableNameEn = elementLs.get(27);
+            String targetTableNameEn = elementLs.get(10);
+            String id = elementLs.get(1);
+            //记录目标表名
+            if (targetTableNameEn != null) {
+                alreadyInList.add(elementLs);
+                if (!targetTableMap.containsKey(spliceTableName)) {
+                    List<String> ls = new ArrayList<>();
+                    ls.add(targetTableNameEn);
+                    targetTableMap.put(spliceTableName, ls);
+
+                    if (!targetTableMap.get(spliceTableName).contains(targetTableNameEn)) {
+                        List<String> strings = targetTableMap.get(spliceTableName);
+                        strings.add(targetTableNameEn);
+                        targetTableMap.put(spliceTableName, strings);
+                    }
+                }
+            }
+            /*//20221019更改逻辑  写入sheet页名称由目标表中文名改为系统id
+            if(targetTableNameEn != null){
+                alreadyInList.add(elementLs);
+                if(id==null){
+                    logger.error("id为空，请检查输入文件");
+                }else{
+                    id = id.toUpperCase();
+                }
+                if (!idMap.containsKey(spliceTableName)) {
+                    List<String> ls = new ArrayList<>();
+                    ls.add(id);
+                    idMap.put(spliceTableName, ls);
+
+                    if (!targetTableMap.get(spliceTableName).contains(targetTableNameEn)) {
+                        List<String> strings = targetTableMap.get(spliceTableName);
+                        strings.add(targetTableNameEn);
+                        targetTableMap.put(spliceTableName, strings);
+                    }
+                }
+
+            }*/
+
             //确保记录的表的唯一性
             if (!removeDuplicateTable.contains(spliceTableName)) {
                 removeDuplicateTable.add(spliceTableName);
@@ -192,6 +257,7 @@ public class ReduceDiameter {
             retLs.add(elementLs.get(2));
             //源表中文名
             retLs.add(elementLs.get(3));
+            retLs.add(null);
             //数据湖是否存在截面
             if (odsNameSnapshot == null) {
                 retLs.add("否");
@@ -230,7 +296,15 @@ public class ReduceDiameter {
             //是否落标
             String standardSituation = getStandardSituation(spliceTableName, standardLs);
             String needFieldStandardSituation = getNeedFieldStandardSituation(spliceTableName, inputLls);
-            retLs.add(standardSituation+"|"+needFieldStandardSituation);
+            String standard = "";
+            if(needFieldStandardSituation.startsWith("全落标")){
+                standard = "是";
+            }else if(needFieldStandardSituation.startsWith("未落标")){
+                standard= "否";
+            }else {
+                standard="否（部分字段）";
+            }
+            retLs.add(standard);
             //是否入仓
             Integer countSrcField = countSrcFieldMap.get(spliceTableName);
             Integer countTargetField = 0;
@@ -238,17 +312,21 @@ public class ReduceDiameter {
                 countTargetField = countTargetFieldMap.get(spliceTableName);
             countTargetField = countSrcField - countTargetField;
             String isWarehousing = "";
+            String isWare ="";
 //            countTargetField = countSrcField-countTargetField;
             if (countSrcField == countTargetField) {
+                isWare ="是";
                 isWarehousing = "全部入仓" + "(" + countTargetField + "/" + countSrcField + ")";
                 //记录字段全部入仓的表
                 allWarehousedTableLs.add(spliceTableName);
             } else if (countTargetField == 0) {
                 if (initMatch(spliceTableName, type, lists)) {
+                    isWare = "否（部分字段）";
                     isWarehousing = "部分入仓" + "(" + countTargetField + "/" + countSrcField + ")";
                     //记录字段部分入仓的表
                     partWarehousedTableLs.add(spliceTableName);
                 } else {
+                    isWare = "否";
                     isWarehousing = "未入仓" + "(" + countTargetField + "/" + countSrcField + ")";
                     List<String> notInLs = new ArrayList<String>();
                     //写入未入仓sheet
@@ -259,10 +337,11 @@ public class ReduceDiameter {
                 }
 
             } else {
+                isWare = "否（部分字段）";
                 isWarehousing = "部分入仓" + "(" + countTargetField + "/" + countSrcField + ")";
                 partWarehousedTableLs.add(spliceTableName);
             }
-            retLs.add(isWarehousing);
+            retLs.add(isWare);
 
             //登记日期
             //获取当天年月日
@@ -277,6 +356,8 @@ public class ReduceDiameter {
             retLs.add(odsNameEn);
             retLs.add(odsNameSnapshot);
             retLs.add(odsNameCn);
+            retLs.add(isWarehousing);
+            retLs.add(standardSituation+"|"+needFieldStandardSituation);
             retLls.add(retLs);
 
         }
@@ -328,7 +409,7 @@ public class ReduceDiameter {
     }
 
     public Boolean doMatchIsWarehousing(String spliceTableName, List<SdmExcelOffical> listSdm) {
-        Pattern n = Pattern.compile("(ods|o)_" + spliceTableName + "_((d|g)\\d_(i|f/z)_)?\\w(_snapshot)?");
+        Pattern n = Pattern.compile("(ods|o)_" + spliceTableName + "(_(d|g)\\d_(i|f|z)_)?(\\w)?(_snapshot)?");
         for (SdmExcelOffical sdmExcelOffical : listSdm) {
             String originalTableNameEn = sdmExcelOffical.getOriginalTableNameEn();
             //eg ods_01_invm_d0_i_d
@@ -378,44 +459,62 @@ public class ReduceDiameter {
         List<StandardDataExcel> standardLsDomestic = lists1.get(0);
         List<StandardDataExcel> standardLsOverseas = lists1.get(1);
 
-        List<Object> outputDomestic = convertToTableList(inputDomestic, "国内",standardLsDomestic);
-        List<Object> outputOverseas = convertToTableList(inputOverseas, "海外",standardLsOverseas);
-
-        //全表清单
-        List<List<String>> tableListDomestic = (List<List<String>>) outputDomestic.get(0);
-        List<List<String>> tableListOverseas = (List<List<String>>) outputOverseas.get(0);
-//        List<List<String>> tableList = ObjectHandle.mergeList(tableListDomestic, tableListOverseas);
-        //已入仓表未入仓字段
-        List<List<String>> partInListDomestic = (List<List<String>>) outputDomestic.get(1);
-        List<List<String>> partInListOverseas = (List<List<String>>) outputOverseas.get(1);
-//        List<List<String>> partInList = ObjectHandle.mergeList(partInListDomestic, partInListOverseas);
-        //未入仓表
-        List<List<String>> notInListDomestic = (List<List<String>>) outputDomestic.get(2);
-        List<List<String>> notInListOverseas = (List<List<String>>) outputOverseas.get(2);
-//        List<List<String>> notInList = ObjectHandle.mergeList(notInListDomestic, notInListOverseas);
-        //已入仓字段
-        List<List<String>> alreadyInListDomestic = (List<List<String>>) outputDomestic.get(3);
-        List<List<String>> alreadyInListOverseas = (List<List<String>>) outputOverseas.get(3);
-//        List<List<String>> alreadyInList = ObjectHandle.mergeList(alreadyInListDomestic, alreadyInListOverseas);
-        //去重分组
-        Map<String, List<List<String>>> alreadyInMapDomestic = splitList(alreadyInListDomestic);
-        //转换成写入list
-        Map<String, List<List<String>>> convertAlreadyInMapDomestic = convertToAlreadyIn(alreadyInMapDomestic, "国内");
-        Map<String, List<List<String>>> alreadyInMapOverseas = splitList(alreadyInListOverseas);
-        Map<String, List<List<String>>> convertAlreadyInMapOverseas = convertToAlreadyIn(alreadyInMapOverseas, "海外");
         //表头
         List<List<String>> headList = getHeadList();
         List<Object> lsObject = new ArrayList<Object>();
         lsObject.add(reduceDiameterOutputFileName);
         lsObject.add(headList);
-        lsObject.add(tableListDomestic);
-        lsObject.add(partInListDomestic);
-        lsObject.add(notInListDomestic);
-        lsObject.add(convertAlreadyInMapDomestic);
-        lsObject.add(tableListOverseas);
-        lsObject.add(partInListOverseas);
-        lsObject.add(notInListOverseas);
-        lsObject.add(convertAlreadyInMapOverseas);
+
+        //国内
+        if(inputDomestic!=null){
+            List<Object> outputDomestic = convertToTableList(inputDomestic, "国内",standardLsDomestic);
+            List<List<String>> tableListDomestic = (List<List<String>>) outputDomestic.get(0);
+            List<List<String>> partInListDomestic = (List<List<String>>) outputDomestic.get(1);
+            List<List<String>> notInListDomestic = (List<List<String>>) outputDomestic.get(2);
+            List<List<String>> alreadyInListDomestic = (List<List<String>>) outputDomestic.get(3);
+            Map<String, List<List<String>>> alreadyInMapDomestic = splitList(alreadyInListDomestic);
+            Map<String, List<List<String>>> convertAlreadyInMapDomestic = convertToAlreadyIn(alreadyInMapDomestic, "国内");
+            lsObject.add(tableListDomestic);
+            lsObject.add(partInListDomestic);
+            lsObject.add(notInListDomestic);
+            lsObject.add(convertAlreadyInMapDomestic);
+        }else{
+            lsObject.add(null);
+            lsObject.add(null);
+            lsObject.add(null);
+            lsObject.add(null);
+        }
+
+        //海外
+        if(inputDomestic != null){
+            List<Object> outputOverseas = convertToTableList(inputOverseas, "海外",standardLsOverseas);
+            //全表清单
+            List<List<String>> tableListOverseas = (List<List<String>>) outputOverseas.get(0);
+//        List<List<String>> tableList = ObjectHandle.mergeList(tableListDomestic, tableListOverseas);
+            //已入仓表未入仓字段
+            List<List<String>> partInListOverseas = (List<List<String>>) outputOverseas.get(1);
+//        List<List<String>> partInList = ObjectHandle.mergeList(partInListDomestic, partInListOverseas);
+            //未入仓表
+            List<List<String>> notInListOverseas = (List<List<String>>) outputOverseas.get(2);
+//        List<List<String>> notInList = ObjectHandle.mergeList(notInListDomestic, notInListOverseas);
+            //已入仓字段
+            List<List<String>> alreadyInListOverseas = (List<List<String>>) outputOverseas.get(3);
+//        List<List<String>> alreadyInList = ObjectHandle.mergeList(alreadyInListDomestic, alreadyInListOverseas);
+            //去重分组
+            //转换成写入list
+            Map<String, List<List<String>>> alreadyInMapOverseas = splitList(alreadyInListOverseas);
+            Map<String, List<List<String>>> convertAlreadyInMapOverseas = convertToAlreadyIn(alreadyInMapOverseas, "海外");
+            lsObject.add(tableListOverseas);
+            lsObject.add(partInListOverseas);
+            lsObject.add(notInListOverseas);
+            lsObject.add(convertAlreadyInMapOverseas);
+        }else{
+            lsObject.add(null);
+            lsObject.add(null);
+            lsObject.add(null);
+            lsObject.add(null);
+        }
+
         return lsObject;
     }
 
@@ -457,6 +556,9 @@ public class ReduceDiameter {
                 sheetList.add("此处无需超链接");
             }
         }
+        if(sheetList.size()==0){
+            return null;
+        }
 //        logger.info("sheetList:" + sheetList);
         return sheetList;
     }
@@ -481,12 +583,12 @@ public class ReduceDiameter {
             excelWriter.write(tableList, writeSheetTableList);
 
             WriteSheet writeSheetPartIn = EasyExcel.writerSheet("已入仓表未入仓字段").build();
-            excelWriter.write(partInListDomestic, writeSheetPartIn);
-            excelWriter.write(partInListOverseas, writeSheetPartIn);
+            if(partInListDomestic!=null) excelWriter.write(partInListDomestic, writeSheetPartIn);
+            if(partInListOverseas!=null) excelWriter.write(partInListOverseas, writeSheetPartIn);
 
             WriteSheet writeSheetNotIn = EasyExcel.writerSheet("未入仓表").build();
-            excelWriter.write(notInListDomestic, writeSheetNotIn);
-            excelWriter.write(notInListOverseas, writeSheetNotIn);
+            if(notInListDomestic!=null) excelWriter.write(notInListDomestic, writeSheetNotIn);
+            if(notInListOverseas!=null) excelWriter.write(notInListOverseas, writeSheetNotIn);
             for (String key : alreadyInMapDomestic.keySet()) {
                 List<List<String>> lls = alreadyInMapDomestic.get(key);
                 String s = lls.get(lls.size() - 1).get(0);
@@ -595,9 +697,9 @@ public class ReduceDiameter {
                 if (i == lls.size() - 1) {
                     List<String> temp = new ArrayList<String>();
                     if (type.equals("国内")) {
-                        temp.add(ls.get(15));
+                        temp.add(ls.get(1));
                     } else {
-                        temp.add(ls.get(15) + "海外");
+                        temp.add(ls.get(1) + "海外");
                     }
                     retLls.add(temp);
                 }

@@ -129,7 +129,9 @@ public class FindTToMRelation {
         for(WarehousingAnalysize input:listInput){
             boolean flagIsWarehousing = false;
             String tableName = input.getSpliceTableName();
-            Pattern n = Pattern.compile("ods_"+tableName+"_(d|g)\\d_(i|f/z)_\\w(_snapshot)?");
+//            Pattern n = Pattern.compile("ods_"+tableName+"_(d|g)\\d_(i|f/z)_\\w(_snapshot)?");
+            Pattern n = Pattern.compile("(ods|o)_" + tableName + "(_(d|g)\\d_(i|f|z)_)?(\\w)?(_snapshot)?");
+
             //eg 01_invm
             for(SdmExcelOffical sdmExcelOffical:listSdm){
                 String originalTableNameEn = sdmExcelOffical.getOriginalTableNameEn();

@@ -134,8 +134,8 @@ sinkInterface:
   cPdmFileName: 物理模型_CEA.xlsx
   cPdmSheetChangeRecord: 修改记录
   cPdmSheetFieldInfo: 字段级信息
-  cPdmChangeTimeUpperLimit: 2022/7/12
-  cPdmChangeTimeLowerLimit: 2022/6/28
+  cPdmChangeTimeUpperLimit: 2022/11/1
+  cPdmChangeTimeLowerLimit: 2022/9/1
   outputFileName: 模板12-湖仓下沉接口模板-企架1.2.xlsx
 #input13
 overseasDcdsProvince:
