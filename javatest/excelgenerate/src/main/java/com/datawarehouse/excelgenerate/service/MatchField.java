@@ -72,7 +72,7 @@ public class MatchField {
         String domesticSheetName = matchFieldConfig.getDomesticStandardDataSheetName();
         String overseasFileName = matchFieldConfig.getOverseasStandardDataFileName();
         String overseasStandardDataSheetName = matchFieldConfig.getOverseasStandardDataSheetName();
-        if(domesticFileName!=null&&domesticSheetName!=null){
+        if(!domesticFileName.equals("")&&!domesticSheetName.equals("")){
             retLsDomestic = readExcel.doReadCommonExcel(domesticFileName,domesticSheetName,StandardDataExcel.class);
             if(retLsDomestic==null) logger.error("国内落标excel读取到0条数据");
             logger.info("读取"+domesticFileName+"成功，"+"共计"+retLsDomestic.size()+"条数据");

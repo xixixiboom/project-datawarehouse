@@ -80,8 +80,8 @@ public class ReduceDiameter {
                 if (changeRecord != null && changeRecord.length() >= 10 && !changeRecord.contains("删除")) {
                     String date = changeRecord.substring(0, 8);
                     Integer dateInt = Integer.parseInt(date);
-                    String changeType = changeRecord.substring(8,10);
-                    if (changeType.equals("新增")) {
+//                    String changeType = changeRecord.substring(8,10);
+                    if (changeRecord.contains("新增")) {
                         if (dateLowerLimit.equals(dateUpperLimit)) {
                             if (dateInt.equals(dateLowerLimit)) {
                                 retLLs.add(ls);
@@ -453,6 +453,7 @@ public class ReduceDiameter {
         int countInputOverseas =0;
         if(inputDomestic != null) countInputDomestic=inputDomestic.size();
         if(inputOverseas != null) countInputOverseas=inputOverseas.size();
+        logger.info("本次更新日期为：  国内： "+dateDomesticLowerLimit+"-"+dateDomesticUpperLimit+"   海外： "+dateOverseasLowerLimit+"-"+dateOverseasUpperLimit);
         logger.info("国内所需字段"+countInputDomestic+"个，海外所需字段"+countInputOverseas+"个");
 
         List<List<StandardDataExcel>> lists1 = matchField.initStandardDataExcel();

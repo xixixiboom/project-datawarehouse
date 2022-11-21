@@ -159,9 +159,12 @@ public class FieldIsWarehousing implements Callable {
             String odsNameEn = sdmExcelOffical.getOriginalTableNameEn();
             String spliceTableName = null;
             //海外可能会是o_34_b_acc_det_entry2_rep的格式
+            //20221115更新 没有考虑snapshot的格式，匹配的格式有问题，应该用正则的
             if(odsNameEn.startsWith("o_")){
                 spliceTableName = odsNameEn.substring(2);
-            }else{
+            }else if(odsNameEn.endsWith("snapshot")){
+                spliceTableName=odsNameEn.substring(4,odsNameEn.length()-16);
+            }else {
                 spliceTableName = odsNameEn.substring(4,odsNameEn.length()-7);
             }
             String fieldNameEn = sdmExcelOffical.getOriginalFieldNameEn();
