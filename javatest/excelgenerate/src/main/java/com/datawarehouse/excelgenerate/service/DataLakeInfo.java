@@ -118,6 +118,7 @@ public class DataLakeInfo {
             map.put("海外",dataLakeTableListOverseas);
             ls.add(DataLakeTable.class);
         }
+
         if(dataLakeTableListDomestic!=null||dataLakeTableListOverseas!=null){
             findTToMRelation.doWriteMulti(fileName,map,ls);
         }else{

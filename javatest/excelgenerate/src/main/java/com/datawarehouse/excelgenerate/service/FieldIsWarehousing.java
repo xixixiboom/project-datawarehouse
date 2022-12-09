@@ -10,9 +10,9 @@ import org.slf4j.LoggerFactory;
 import org.springframework.beans.BeanUtils;
 import org.springframework.stereotype.Service;
 
-import java.util.ArrayList;
-import java.util.List;
+import java.util.*;
 import java.util.concurrent.Callable;
+import java.util.stream.Collectors;
 
 /**
  * @ClassName FieldIsWarehousing
@@ -40,12 +40,18 @@ public class FieldIsWarehousing implements Callable {
     //为了去除一个源字段对应多个目标字段的情况，如参与方编号等不在考虑范围内
     public List<SdmExcelOffical> removeDuplicateMTableNameCnTechnologyField(List<SdmExcelOffical> inputLs){
         if(inputLs.size()>1){
-            for(int i=0; i<inputLs.size(); i++){
-                String targetFieldNameCn = inputLs.get(i).getTargetFieldNameCn();
+            //注意这里ArrayList里存放的对象不是Integer 和String，自定义对象属于可变类，因此需要深拷贝，否则只是指向地址，更改拷贝的数组时，原数组也会更改。
+            List<SdmExcelOffical> copyArr = new ArrayList<>();
+            for(int i=0;i<inputLs.size(); i++){
+                copyArr.add(inputLs.get(i));
+            }
+            for(int i=0; i<copyArr.size(); i++){
+                String targetFieldNameCn = copyArr.get(i).getTargetFieldNameCn();
                 if(technologyFieldLs().contains(targetFieldNameCn)){
-                    inputLs.remove(i--);
+                    copyArr.remove(i--);
                 }
             }
+            if(copyArr.size()>0) return copyArr;
         }
         return inputLs;
     }
@@ -207,6 +213,16 @@ public class FieldIsWarehousing implements Callable {
         return standardDataExcel;
     }
 
+    //20221206更新，将匹配出的list进行去重，防止出现重复情况
+    public List<SdmExcelOffical> removeDuplicateValue (List<SdmExcelOffical> inputLs){
+        if(inputLs.size()>1){
+            Map<Object,Boolean> map =new HashMap<>();
+            List<SdmExcelOffical> collect = inputLs.stream().filter(i -> map.putIfAbsent((i.getOriginalTableNameEn() + i.getOriginalFieldNameEn() + i.getTargetTableNameEn() + i.getTargetFieldNameEn()).toUpperCase(), Boolean.TRUE) == null).distinct().collect(Collectors.toList());
+            return collect;
+        }
+        return inputLs;
+    }
+
     @Override
     public List<InputAndSdmField> call(){
         List<InputAndSdmField> retLs = new ArrayList<InputAndSdmField>();
@@ -215,20 +231,22 @@ public class FieldIsWarehousing implements Callable {
             StandardDataExcel standard = matchFieldStandard();
             //去除技术字段
             List<SdmExcelOffical>tempRemoveDuplicate= removeDuplicateMTableNameCnTechnologyField(sdmList);
-            if(tempRemoveDuplicate.size()>0)    sdmList = tempRemoveDuplicate;
+            if(tempRemoveDuplicate!=null&&tempRemoveDuplicate.size()>0)    sdmList = tempRemoveDuplicate;
             //去除 3AG合约主表
             tempRemoveDuplicate =removeDuplicateMTableNameEn(sdmList);
-            if(tempRemoveDuplicate.size()>0)    sdmList = tempRemoveDuplicate;
+            if(tempRemoveDuplicate!=null&&tempRemoveDuplicate.size()>0)    sdmList = tempRemoveDuplicate;
             //去除持有人编号
             tempRemoveDuplicate =removeDuplicateMTableNameCnPossessorNumber(sdmList);
-            if(tempRemoveDuplicate.size()>0)    sdmList = tempRemoveDuplicate;
+            if(tempRemoveDuplicate!=null&&tempRemoveDuplicate.size()>0)    sdmList = tempRemoveDuplicate;
             //去除类型代码
             tempRemoveDuplicate =removeDuplicateMTableNameCnTypeCode(sdmList);
-            if(tempRemoveDuplicate.size()>0)    sdmList = tempRemoveDuplicate;
+            if(tempRemoveDuplicate!=null&&tempRemoveDuplicate.size()>0)    sdmList = tempRemoveDuplicate;
             //去除历史表
             tempRemoveDuplicate =removeDuplicateMTableNameEnHst(sdmList);
-            if(tempRemoveDuplicate.size()>0)    sdmList = tempRemoveDuplicate;
-
+            if(tempRemoveDuplicate!=null&&tempRemoveDuplicate.size()>0)    sdmList = tempRemoveDuplicate;
+            //去重
+            tempRemoveDuplicate =removeDuplicateValue(sdmList);
+            if(tempRemoveDuplicate!=null&&tempRemoveDuplicate.size()>0)    sdmList = tempRemoveDuplicate;
 
             //防止报空指针异常
             for(SdmExcelOffical sdmRet : sdmList){

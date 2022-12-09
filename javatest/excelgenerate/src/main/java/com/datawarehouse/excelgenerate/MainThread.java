@@ -13,6 +13,7 @@ import org.springframework.boot.ApplicationArguments;
 import org.springframework.boot.ApplicationRunner;
 import org.springframework.stereotype.Service;
 
+import java.util.ArrayList;
 import java.util.Scanner;
 
 @Service
@@ -115,7 +116,7 @@ public class MainThread implements ApplicationRunner {
                     dataLakeInfo.writeDataLakeInfo();
                 }
                 else if (num==9){
-                    matchField.doWrite();
+                    matchField.doWrite(new ArrayList<>());
                 }
                 else if(num==10){
                     version.getDirList();

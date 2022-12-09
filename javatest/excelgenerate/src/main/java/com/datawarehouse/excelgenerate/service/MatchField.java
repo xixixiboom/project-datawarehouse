@@ -18,6 +18,7 @@ import java.util.concurrent.ExecutionException;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 import java.util.concurrent.Future;
+import java.util.stream.Collectors;
 
 /**
  * @ClassName MatchField
@@ -87,7 +88,7 @@ public class MatchField {
         return retLLs;
     }
 
-    public List<List<DemandInputTemplateDetail>> judgeDomesticOrOverseas(List<DemandInputTemplateDetail> listDetail ){
+    public List<List<DemandInputTemplateDetail>> judgeDomesticOrOverseas(List<DemandInputTemplateDetail> listDetail){
         List<List<DemandInputTemplateDetail>>ls=new ArrayList<>();
         List<DemandInputTemplateDetail> domestic = new ArrayList<>();
         List<DemandInputTemplateDetail> overseas = new ArrayList<>();
@@ -168,7 +169,54 @@ public class MatchField {
         }
         return spliceTableNameList;
     }
-    public List<List<InputAndSdmField>> doWrite(){
+
+    /**
+     * @Description 20221202增加去重逻辑，将系统名+字段名 相同的值去重，根据变更日期排序，留下变更日期最小的值。
+     * @Date 2022/12/2 14:12
+     * @Param
+     * @return
+     **/
+    public List<List<DemandInputTemplateDetail>> removeDuplicateField(List<DemandInputTemplateDetail> details){
+        Map<String,DemandInputTemplateDetail> map=new LinkedHashMap<>();
+        List<List<DemandInputTemplateDetail>> retLLs = new ArrayList<>();
+        //存放被去重的行
+        List<DemandInputTemplateDetail> duplicateFieldLs = new ArrayList<>();
+        for(DemandInputTemplateDetail detail:details){
+            String spliceTableAndField = detail.getSrcSystemFlag()+"_"+detail.getSrcTableNameEn()+"_"+detail.getSrcFieldNameEn();
+            spliceTableAndField=spliceTableAndField.toUpperCase();
+            String updateTime = detail.getChangeRecord();
+            if(!map.containsKey(spliceTableAndField)){
+                map.put(spliceTableAndField,detail);
+            }else{
+                DemandInputTemplateDetail tmpDm = map.get(spliceTableAndField);
+                String tmpUpdateTime = tmpDm.getChangeRecord();
+                if(compareTime(updateTime,tmpUpdateTime)){
+                    duplicateFieldLs.add(detail);
+                }else{
+                    duplicateFieldLs.add(tmpDm);
+                    map.put(spliceTableAndField,detail);
+                }
+            }
+        }
+        List<DemandInputTemplateDetail> retLs =new ArrayList<DemandInputTemplateDetail>();
+        for(String s:map.keySet()){
+            retLs.add(map.get(s));
+        }
+        retLLs.add(retLs);
+        retLLs.add(duplicateFieldLs);
+        return retLLs;
+    }
+
+    public Boolean compareTime(String t1,String t2){
+        if(t1==null) t1="10000000新增";
+        if(t2==null) t2="10000000新增";
+        String t1Part = t1.substring(0,8);
+        String t2Part = t2.substring(0,8);
+        int t1Int = Integer.parseInt(t1Part);
+        int t2Int = Integer.parseInt(t2Part);
+        return t1Int>t2Int;
+    }
+    public List<List<InputAndSdmField>> doWrite(List<String> revisionRecord){
         //初始化输入数据
         List<DemandInputTemplateDetail> demandInputTemplateDetails = initInputData();
         //查数据库systemID  todo systemID通过数据库校验
@@ -181,6 +229,13 @@ public class MatchField {
         List<List<DemandInputTemplateDetail>> lists1 = judgeDomesticOrOverseas(detailsList);
         List<DemandInputTemplateDetail> detailsDomestic = lists1.get(0);
         List<DemandInputTemplateDetail> detailsOverseas = lists1.get(1);
+        //20221202增加去重逻辑，将系统名+字段名 相同的值去重，根据变更日期排序，留下变更日期最小的值。
+        List<List<DemandInputTemplateDetail>> removeListDo = removeDuplicateField(detailsDomestic);
+        detailsDomestic=removeListDo.get(0);
+        List<DemandInputTemplateDetail> duplicateDo = removeListDo.get(1);
+        List<List<DemandInputTemplateDetail>> removeListOv = removeDuplicateField(detailsOverseas);
+        detailsOverseas=removeListOv.get(0);
+        List<DemandInputTemplateDetail> duplicateOv = removeListOv.get(1);
 
         //输入文件获取拼接str
         List<String> spliceDomesticList = getSpliceTableAndFieldNameList(detailsDomestic);
@@ -190,8 +245,6 @@ public class MatchField {
         List<List<StandardDataExcel>> llsStandard = initStandardDataExcel();
         List<StandardDataExcel> standardLsDomestic = llsStandard.get(0);
         List<StandardDataExcel> standardLsOverseas = llsStandard.get(1);
-        for(StandardDataExcel sss:standardLsDomestic) {
-        }
 
         List<List<InputAndSdmField>> lls = new ArrayList<>();
         //国内遍历
@@ -205,21 +258,49 @@ public class MatchField {
         String outputFileName = matchFieldConfig.getMatchFieldOutputFileName();
         Map<String,Object> map = new LinkedHashMap<>();
         List<Class> ls = new ArrayList<>();
-        if(sdmMatchListDomestic!=null){
+        if(sdmMatchListDomestic.size()!=0){
             map.put("国内",sdmMatchListDomestic);
             ls.add(InputAndSdmField.class);
         }
-        if(sdmMatchListOverseas!=null){
+        if(sdmMatchListOverseas.size()!=0){
             map.put("海外",sdmMatchListOverseas);
             ls.add(InputAndSdmField.class);
         }
-        if(sdmMatchListDomestic!=null||sdmMatchListOverseas!=null){
+        String s1 = "国内所需字段0个";
+        if(detailsDomestic.size()!=0){
+            map.put("国内所需字段",detailsDomestic);
+            s1 = "国内所需字段"+detailsDomestic.size()+"个";
+            ls.add(DemandInputTemplateDetail.class);
+        }
+        logger.info(s1);
+        String s2 = "海外所需字段0个";
+        if(detailsOverseas.size()!=0){
+            map.put("海外所需字段",detailsOverseas);
+            s2="海外所需字段"+detailsOverseas.size()+"个";
+            ls.add(DemandInputTemplateDetail.class);
+        }
+        logger.info(s2);
+        String s3 = "国内重复字段0个";
+        if(duplicateDo.size()!=0){
+            map.put("国内重复字段",duplicateDo);
+            s3="国内重复字段"+duplicateDo.size()+"个";
+            ls.add(DemandInputTemplateDetail.class);
+        }
+        logger.info(s3);
+        String s4 = "海外重复字段0个";
+        if(duplicateOv.size()!=0){
+            map.put("海外重复字段",duplicateOv);
+            s4="海外重复字段"+duplicateOv.size()+"个";
+            ls.add(DemandInputTemplateDetail.class);
+        }
+        logger.info(s4);
+        revisionRecord.add(s1+","+s2+","+s3+","+s4);
+        if(sdmMatchListDomestic.size()!=0||sdmMatchListOverseas.size()!=0){
             findTToMRelation.doWriteMulti(outputFileName,map,ls);
         }else{
             logger.warn("处理数据结果为空，请检查");
         }
         return lls;
-
     }
 
     public List<InputAndSdmField> doMatch(List<String> spliceList,List<SdmExcelOffical>sdmListBasic,List<DemandInputTemplateDetail>details,List<StandardDataExcel> standardList){
