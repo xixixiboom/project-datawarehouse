@@ -8,6 +8,7 @@ import com.datawarehouse.excelgenerate.config.FindTToBRelationConfig;
 import com.datawarehouse.excelgenerate.entity.SdmExcelOffical;
 import com.datawarehouse.excelgenerate.entity.TtoMOutputExcel;
 import com.datawarehouse.excelgenerate.entity.WarehousingAnalysize;
+import com.datawarehouse.excelgenerate.utils.FileHandle;
 import com.sun.scenario.effect.impl.sw.sse.SSEBlend_SRC_OUTPeer;
 import org.apache.poi.ss.formula.functions.T;
 import org.slf4j.Logger;
@@ -89,7 +90,9 @@ public class FindTToMRelation {
      * @return void
      **/
     public void doWriteMulti(String fileName, Map<String,Object> map,List<Class> lsClass){
-        ExcelWriter writer = EasyExcel.write(fileName).registerWriteHandler(new LongestMatchColumnWidthStyleStrategy()).build();
+        String destName = FileHandle.mergeDirAndFile("gen_"+fileName);
+
+        ExcelWriter writer = EasyExcel.write(destName).registerWriteHandler(new LongestMatchColumnWidthStyleStrategy()).build();
         Set<Map.Entry<String, Object>> entries = map.entrySet();
         int countSheetNo = 0;
         int countLsClass = 0;
@@ -102,7 +105,7 @@ public class FindTToMRelation {
                 countSheetNo++;
                 countLsClass++;
             }
-            logger.info("写入excel "+fileName+" 成功");
+            logger.info("写入excel "+destName+" 成功");
         } finally {
             // 千万别忘记close 会帮忙关闭流
             if (writer != null) {

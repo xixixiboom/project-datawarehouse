@@ -56,6 +56,15 @@ public class InputAndSdmField {
 //    @ExcelProperty(index=2)
     private String targetFieldNameEn;
 
+    //20230330update 增加三个字段
+    @ExcelProperty("字典ID")
+//    @ExcelProperty(index=2)
+    private String dicID;
+
+    @ExcelProperty("落标字段英文名")
+//    @ExcelProperty(index=2)
+    private String standardFieldNameEn;
+
     @ExcelProperty("序号")
 //    @ExcelProperty(index=3)
     private String serialNumber;
@@ -74,6 +83,11 @@ public class InputAndSdmField {
     @ExcelProperty(value = "目标字段中文名")
 //    @ExcelProperty(index=7)
     private String targetFieldNameCn;
+
+    @ExcelProperty(value = "落标字段中文名")
+//    @ExcelProperty(index=7)
+    private String standardFieldNameCn;
+
 
     @ExcelProperty(value = "目标字段数据类型")
 //    @ExcelProperty(index=8)

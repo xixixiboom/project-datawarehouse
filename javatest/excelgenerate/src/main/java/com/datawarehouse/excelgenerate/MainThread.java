@@ -52,10 +52,11 @@ public class MainThread implements ApplicationRunner {
     SinkInterface sinkInterface;
     @Autowired
     OverseasDcdsProvinceScope overseasDcdsProvinceScope;
+
     public void run(ApplicationArguments args) throws Exception {
 //        initFile.initFile(outputExcelConfig.getOutputExcelFileName());
 
-        while(true) {
+        while (true) {
             Scanner sc = new Scanner(System.in);
             System.out.println("生成excel-------------input：1");
             System.out.println("ETL开发前删除文件及备份--------------input：2");
@@ -71,27 +72,24 @@ public class MainThread implements ApplicationRunner {
             System.out.println("生成下沉接口-----------input：12");
             System.out.println("dcds海外分省范围梳理---------input : 13");
             System.out.println("关闭程序-------------input：0");
-            if(sc.hasNext()){
+            if (sc.hasNext()) {
                 String inputStr = sc.nextLine();
-                int num=0;
-                try{
+                int num = 0;
+                try {
                     num = Integer.parseInt(inputStr);
-                }catch(NumberFormatException e){
+                } catch (NumberFormatException e) {
                     System.out.println("输入不合法，请再次输入");
                 }
-                if(num ==1){
+                if (num == 1) {
                     readExcel.doReadExcel();
                     FileHandle.renameFile(inputExcelConfig.getFileName());
-                }else if(num ==2){
+                } else if (num == 2) {
                     beforeEtl.doBackupAndDelete();
-                }
-                else if(num==3){
+                } else if (num == 3) {
                     generateExcuteableStatement.doGenerateStatement();
-                }
-                else if(num==4){
-                    sftpUtils.doUpload(uploadFileConfig.getIp(),uploadFileConfig.getUserName(),uploadFileConfig.getPassWord(),uploadFileConfig.getPort(),uploadFileConfig.getLocalAndRemoteDir());
-                }
-                else if(num==5){
+                } else if (num == 4) {
+                    sftpUtils.doUpload(uploadFileConfig.getIp(), uploadFileConfig.getUserName(), uploadFileConfig.getPassWord(), uploadFileConfig.getPort(), uploadFileConfig.getLocalAndRemoteDir());
+                } else if (num == 5) {
 //                    String[][] realtionExcel2 = findTableRelation.doReadRealtionExcel2();
 //                    findTableRelation.getRelationTree();
 //                    findTableRelation.doReadRealtionExcel();
@@ -105,32 +103,25 @@ public class MainThread implements ApplicationRunner {
 //                        }
 //                    }
 
-                }
-                else if(num==6){
+                } else if (num == 6) {
                     findCRelation.doFind();
-                }
-                else if(num==7){
+                } else if (num == 7) {
                     findTToMRelation.isWarehousing();
-                }
-                else if (num==8){
+                } else if (num == 8) {
                     dataLakeInfo.writeDataLakeInfo();
-                }
-                else if (num==9){
+                } else if (num == 9) {
                     matchField.doWrite(new ArrayList<>());
-                }
-                else if(num==10){
+                } else if (num == 10) {
                     version.getDirList();
-                }
-                else if(num==11){
+                } else if (num == 11) {
                     reduceDiameter.doWrite();
-                }
-                else if(num==12){
+                } else if (num == 12) {
                     sinkInterface.doWrite();
-                }else if(num ==13) overseasDcdsProvinceScope.doWrite();
-                else if(num==99){
+                } else if (num == 13) {
+                    overseasDcdsProvinceScope.doWrite();
+                } else if (num == 99) {
                     new TestController().contextLoads();
-                }
-                else if(num==0){
+                } else if (num == 0) {
                     System.exit(0);
                 }
             }

@@ -5,6 +5,7 @@ import com.datawarehouse.excelgenerate.entity.*;
 import com.datawarehouse.excelgenerate.entity.reduceDiameter.InputAndSdmField;
 import com.datawarehouse.excelgenerate.entity.reduceDiameter.StandardDataExcel;
 import com.datawarehouse.excelgenerate.mapper.CommonMapper;
+import com.datawarehouse.excelgenerate.utils.FileHandle;
 import com.datawarehouse.excelgenerate.utils.ObjectHandle;
 import org.hibernate.tool.schema.internal.exec.ScriptTargetOutputToFile;
 import org.slf4j.Logger;
@@ -42,6 +43,7 @@ public class MatchField {
     private static final Logger logger = LoggerFactory.getLogger(MatchField.class);
     private List<DemandInputTemplateDetail> initInputData(){
         String inputFileName = matchFieldConfig.getDemandInputTemplateDetailFileName();
+        inputFileName= FileHandle.mergeDirAndFile(inputFileName);
         String inputSheetName =matchFieldConfig.getDemandInputTemplateDetailSheetName();
         List<DemandInputTemplateDetail> ts = readExcel.doReadCommonExcel(inputFileName, inputSheetName, DemandInputTemplateDetail.class);
         //如果读取为空则去除

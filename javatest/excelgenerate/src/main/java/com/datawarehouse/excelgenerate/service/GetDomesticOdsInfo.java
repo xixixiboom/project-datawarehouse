@@ -5,7 +5,6 @@ import com.datawarehouse.excelgenerate.entity.DataLakeTable;
 import com.datawarehouse.excelgenerate.mapper.CommonMapper;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 
 import java.text.SimpleDateFormat;
@@ -18,7 +17,7 @@ import java.util.concurrent.Callable;
 
 /**
  * @ClassName GetDomesticOdsInfo
- * @Description TODO
+ * @Description TODO 待优化项：for循环中执行查询数据库操作会频繁开闭链接，导致执行效率低，可以在查询时直接返回所有结果后处理
  * @Author xjy
  * @Date 2022/9/17 23:57
  * @Version 1.0

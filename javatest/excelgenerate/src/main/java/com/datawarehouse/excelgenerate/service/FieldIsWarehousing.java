@@ -164,6 +164,12 @@ public class FieldIsWarehousing implements Callable {
             SdmExcelOffical sdmExcelOffical = sdmExcelOfficalList.get(i);
             String odsNameEn = sdmExcelOffical.getOriginalTableNameEn();
             String spliceTableName = null;
+
+            //20230330 update排除sdm中非法数据
+            if(odsNameEn==null||(odsNameEn.length()<=12&&odsNameEn.startsWith("ods_"))||!odsNameEn.startsWith("o")){
+                continue;
+            }
+
             //海外可能会是o_34_b_acc_det_entry2_rep的格式
             //20221115更新 没有考虑snapshot的格式，匹配的格式有问题，应该用正则的
             if(odsNameEn.startsWith("o_")){

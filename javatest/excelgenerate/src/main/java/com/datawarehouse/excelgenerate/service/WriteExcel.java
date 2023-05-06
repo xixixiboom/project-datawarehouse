@@ -11,6 +11,7 @@ import com.alibaba.excel.write.style.column.LongestMatchColumnWidthStyleStrategy
 import com.datawarehouse.excelgenerate.config.InputExcelConfig;
 import com.datawarehouse.excelgenerate.config.OutputExcelConfig;
 import com.datawarehouse.excelgenerate.service.easyExcelSet.CommonCellWriteWriteHandler;
+import com.datawarehouse.excelgenerate.utils.FileHandle;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -39,8 +40,10 @@ public class WriteExcel {
     public void writeCommon(String fileName,String sheetName,List<List<String>> data){
         ExcelWriter excelWriter=new ExcelWriter(new WriteWorkbook());
         try{
-            File templateFile = new File(fileName);
-            File destFile = new File("gen_"+fileName);
+            String name = FileHandle.mergeDirAndFile(fileName);
+            File templateFile = new File(name);
+            String destName = FileHandle.mergeDirAndFile("gen_"+fileName);
+            File destFile = new File(destName);
             WriteSheet writeSheet = EasyExcel.writerSheet(sheetName).build();
             //强制下一行追加写
             FillConfig fillConfig = FillConfig.builder().forceNewRow(true).build();
@@ -53,7 +56,7 @@ public class WriteExcel {
                 excelWriter = EasyExcel.write(templateFile).build();
             }
             excelWriter.fill(data,fillConfig, writeSheet);
-            logger.info("写入 "+fileName+" 成功");
+            logger.info("写入 "+destName+" 成功");
         }catch(Exception e){
             logger.error("写入 "+fileName+" 失败");
             e.printStackTrace();
@@ -68,8 +71,11 @@ public class WriteExcel {
     public void writeCommon(String fileName, Map<String,List<List<String>>> map){
         ExcelWriter excelWriter=new ExcelWriter(new WriteWorkbook());
         try{
-            File templateFile = new File(fileName);
-            File destFile = new File("gen_"+fileName);
+            String name = FileHandle.mergeDirAndFile(fileName);
+            File templateFile = new File(name);
+            String destName = FileHandle.mergeDirAndFile("gen_"+fileName);
+
+            File destFile = new File(destName);
             if(templateFile.exists()){
                 excelWriter = EasyExcel.write(templateFile).withTemplate(templateFile)
                         //.file() 指定目标文件，不能与模板文件是同一个文件
@@ -83,7 +89,7 @@ public class WriteExcel {
                 WriteSheet writeSheet = EasyExcel.writerSheet(sheetName).build();
                 excelWriter.write(data, writeSheet);
             }
-            logger.info("写入 "+fileName+" 成功");
+            logger.info("写入 "+destName+" 成功");
         }catch(Exception e){
             logger.error("写入 "+fileName+" 失败");
             e.printStackTrace();
@@ -95,12 +101,14 @@ public class WriteExcel {
         }
     }
     public void writeCommon(String fileName,String sheetName,List<List<String>> data,List<List<String>>headList){
-        ExcelWriter excelWriter = EasyExcel.write(fileName).registerWriteHandler(new LongestMatchColumnWidthStyleStrategy()).registerWriteHandler(new CommonCellWriteWriteHandler()).build();
+        String destName = FileHandle.mergeDirAndFile("gen_"+fileName);
+
+        ExcelWriter excelWriter = EasyExcel.write(destName).registerWriteHandler(new LongestMatchColumnWidthStyleStrategy()).registerWriteHandler(new CommonCellWriteWriteHandler()).build();
         try{
             File destFile = new File(fileName);
             WriteSheet writeSheet = EasyExcel.writerSheet(sheetName).head(headList).build();
             excelWriter.write(data,writeSheet);
-            logger.info("写入 "+fileName+" 成功");
+            logger.info("写入 "+destName+" 成功");
         }catch(Exception e){
             logger.error("写入 "+fileName+" 失败");
             e.printStackTrace();
@@ -112,8 +120,11 @@ public class WriteExcel {
         }
     }
     public <U>void addWrite(String fileName,String sheetName,List<U> data){
-        File templateFile = new File(fileName);
-        File destFile = new File("gen_"+fileName);
+        String name = FileHandle.mergeDirAndFile(fileName);
+        File templateFile = new File(name);
+        String destName = FileHandle.mergeDirAndFile("gen_"+fileName);
+
+        File destFile = new File(destName);
 /*        outputExcelConfig.setTemplateFile(templateFile);
         outputExcelConfig.setDestFile(destFile);*/
         ExcelWriter excelWriter=new ExcelWriter(new WriteWorkbook());

@@ -289,4 +289,61 @@ public class FileHandle {
         return fileList;
     }
 
+    //获取给定目录的子目录列表
+    public static List<File> returnDirList(String dir){
+        File file = new File(dir);
+        List<File> lsFiles = new ArrayList<File>();
+        logger.info("目录为："+file.getAbsolutePath());
+        if(file.isDirectory()){
+            //list 和listFiles 区别，list返回文件和目录，listFiles返回文件
+            String[] list = file.list();
+            for(String s:list){
+                String s1 = file.getAbsolutePath() + File.separator + s;
+                File fileChild = new File(s1);
+                if (fileChild.isDirectory()) {
+                    lsFiles.add(fileChild);
+                }
+            }
+        }
+        return lsFiles;
+    }
+
+    //从给定目录列表中获取时间最新的目录
+    public static String getLatestTime(List<File> files){
+        List<String> tmpLs = new ArrayList<>();
+        if(files==null || files.size()==0) {
+            logger.error("给定目录中无以时间开头的子目录，请检查yml文件");
+            System.exit(0);
+        }else{
+            for(File file:files){
+                if(file.getName().startsWith("20")){
+                    tmpLs.add(file.getName());
+                }
+            }
+        }
+        if(tmpLs.size()!=0){
+            tmpLs.sort(String::compareTo);
+            logger.info("待读取目录为："+tmpLs.get(tmpLs.size()-1));
+            return tmpLs.get(tmpLs.size()-1);
+        }else{
+            logger.error("给定目录中无以时间开头的子目录，请检查yml文件");
+            System.exit(0);
+        }
+        return "";
+    }
+
+    //合并目录与文件名
+    public static String mergeDirAndFile(String fileName){
+        //todo 合并目录
+/*        String  parentDir = "./execute";
+        List<File> files = returnDirList(parentDir);
+        String latestTime = getLatestTime(files);
+        System.out.println( parentDir+latestTime+File.separator+fileName);
+        return parentDir+latestTime+File.separator+fileName;*/
+        return fileName;
+    }
+
+
+
+
 }

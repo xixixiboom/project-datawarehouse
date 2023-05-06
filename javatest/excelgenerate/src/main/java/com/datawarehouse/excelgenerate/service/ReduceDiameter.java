@@ -123,7 +123,7 @@ public class ReduceDiameter {
             List<String> elementLs = inputLls.get(i);
             String spliceTableName = elementLs.get(1) + "_" + elementLs.get(2);
             spliceTableName = spliceTableName.toUpperCase();
-            String srcTableNameEn = elementLs.get(27);
+            String srcTableNameEn = elementLs.get(30);
             String targetTableNameEn = elementLs.get(10);
             //如果有规定的tableList,则限制条件筛选
             if(tableListCount!=0){
@@ -192,8 +192,8 @@ public class ReduceDiameter {
                 countNeedFields.put(spliceTableName,tmpInt);
             }
             String srcFieldName = ls.get(4);
-            String srcOdsName = ls.get(27);
-            String dicID = ls.get(43);
+            String srcOdsName = ls.get(30);
+            String dicID = ls.get(46);
             if(dicID==null) k=0;
             if("#N/A".equals(srcOdsName))j=0;
 
@@ -373,6 +373,7 @@ public class ReduceDiameter {
             }
             //下传方式 todo
             retLs.add(null);
+            //更新情况
             String updateSituation = getLogEveryTable(spliceTableName,updateDetails, countNeedFields);
             retLs.add(updateSituation);
             //是否落标
@@ -451,7 +452,7 @@ public class ReduceDiameter {
             List<String> elementLs = filterInputLls.get(k);
             String spliceTableName = elementLs.get(1) + "_" + elementLs.get(2);
             spliceTableName = spliceTableName.toUpperCase();
-            String srcTableNameEn = elementLs.get(27);
+            String srcTableNameEn = elementLs.get(30);
             String targetTableNameEn = elementLs.get(10);
             for (String allInTable : allWarehousedTableLs) {
                 if (allInTable.equals(spliceTableName)) {
@@ -951,7 +952,13 @@ public class ReduceDiameter {
         List<String> ls14 = Arrays.asList("取数条件");
         List<String> ls15 = Arrays.asList("备注");
         List<String> ls16=  Arrays.asList("M层表中文名");
-        Collections.addAll(retLs, ls0, ls1, ls2, ls3, ls4, ls5, ls6, ls7, ls8, ls9, ls10, ls11, ls12, ls13, ls14, ls15,ls16);
+        List<String> ls17=  Arrays.asList("字典ID");
+        List<String> ls18=  Arrays.asList("M层落标后字段英文名");
+        List<String> ls19=  Arrays.asList("M层落标后字段中文名");
+        List<String> ls20=  Arrays.asList("序号");
+
+
+        Collections.addAll(retLs, ls0, ls1, ls2, ls3, ls4, ls5, ls6, ls7, ls8, ls9, ls10, ls11, ls12, ls13, ls14, ls15,ls16,ls17,ls18,ls19,ls20);
         return retLs;
     }
 
@@ -971,12 +978,20 @@ public class ReduceDiameter {
                 retLs.add(ls.get(5));
                 retLs.add(ls.get(10));
                 retLs.add(ls.get(11));
-                retLs.add(ls.get(16));
                 retLs.add(ls.get(18));
+                retLs.add(ls.get(21));
                 retLs.add(null);
                 retLs.add(null);
                 retLs.add(null);
                 retLs.add(null);
+                retLs.add(ls.get(24));
+                retLs.add(null);
+                retLs.add(null);
+                retLs.add(ls.get(17));
+                retLs.add(ls.get(12));
+                retLs.add(ls.get(13));
+                retLs.add(ls.get(19));
+                retLs.add(ls.get(14));
                 //v20221009变更逻辑，取概要注释规则
                 /*if(ls.get(20)==null){
                     retLs.add(null);
@@ -990,10 +1005,10 @@ public class ReduceDiameter {
                         retLs.add(null);
                     }
                 }*/
-                retLs.add(ls.get(21));
+/*                retLs.add(ls.get(21));
                 retLs.add(null);
                 retLs.add(null);
-                retLs.add(ls.get(15));
+                retLs.add(ls.get(15));*/
                 retLls.add(retLs);
                 //加个sheet名,在最后一行字段匹配的m表中文名
                 if (i == lls.size() - 1) {

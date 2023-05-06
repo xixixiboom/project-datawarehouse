@@ -2,6 +2,7 @@ package com.datawarehouse.excelgenerate.service;
 
 import com.alibaba.fastjson.JSON;
 import com.datawarehouse.excelgenerate.config.SinkInterfaceConfig;
+import com.datawarehouse.excelgenerate.utils.FileHandle;
 import com.sun.scenario.effect.impl.sw.sse.SSEBlend_SRC_OUTPeer;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -161,6 +162,7 @@ public class SinkInterface {
         String cPdmFileName = sinkInterfaceConfig.getCPdmFileName();
         String cPdmSheetChangeRecord = sinkInterfaceConfig.getCPdmSheetChangeRecord();
         if (!cPdmFileName.equals("") && !cPdmSheetChangeRecord.equals("")) {
+            cPdmFileName= FileHandle.mergeDirAndFile(cPdmFileName);
             List<LinkedHashMap<Integer, String>> retLls = readExcel.doReadCommonExcel(cPdmFileName, cPdmSheetChangeRecord);
             return retLls;
         }
@@ -223,6 +225,7 @@ public class SinkInterface {
         String cPdmFileName = sinkInterfaceConfig.getCPdmFileName();
         String cPdmSheetFieldInfo = sinkInterfaceConfig.getCPdmSheetFieldInfo();
         if (!cPdmFileName.equals("") && !cPdmSheetFieldInfo.equals("")) {
+            cPdmFileName= FileHandle.mergeDirAndFile(cPdmFileName);
             List<LinkedHashMap<Integer, String>> retLls = readExcel.doReadCommonExcel(cPdmFileName, cPdmSheetFieldInfo);
             return retLls;
         }
